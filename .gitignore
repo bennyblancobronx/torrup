@@ -47,6 +47,8 @@ ENV/
 data/
 logs/
 *.log
+output/
+tlt.db
 
 # Secrets
 .env
@@ -61,7 +63,7 @@ credentials.json
 htmlcov/
 .tox/
 
-# Build artifacts
+# Build artifacts (generated in output/)
 *.torrent
 *.nfo
 
