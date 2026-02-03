@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Iosevka", "IBM Plex Sans", "Segoe UI", sans-serif;
+      background: #0f0f12;
+      color: #e9e9ef;
+      min-height: 100vh;
+    }
+    a { color: #8be9fd; text-decoration: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 1.6rem; margin-bottom: 6px; }
+    .sub { color: #9aa0a6; margin-bottom: 18px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .panel { background: #15151b; border: 1px solid #242430; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; color: #c2c2d1; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 260px; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    select, input, button {
+      background: #1e1e27; color: #e9e9ef; border: 1px solid #2d2d3a; border-radius: 6px;
+      padding: 8px 10px; font-size: 0.95rem;
+    }
+    button { cursor: pointer; font-weight: 600; }
+    button.primary { background: #8be9fd; color: #0f0f12; border-color: #8be9fd; }
+    button.ghost { background: transparent; }
+    .file-list { max-height: 420px; overflow-y: auto; border: 1px solid #222; border-radius: 8px; }
+    .file-item { display: grid; grid-template-columns: 26px 1fr 120px; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #222; align-items: center; }
+    .file-item:hover { background: #1c1c25; }
+    .file-item .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge { padding: 2px 6px; border-radius: 6px; background: #2a2a36; color: #c2c2d1; font-size: 0.75rem; }
+    .queue-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .queue-table th, .queue-table td { padding: 8px; border-bottom: 1px solid #2a2a36; text-align: left; }
+    .status { padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; }
+    .status.queued { background: #2a2a36; }
+    .status.preparing { background: #2a3642; }
+    .status.uploading { background: #2a3642; }
+    .status.success { background: #1f4d36; }
+    .status.failed { background: #5a1e1e; }
+    .status.duplicate { background: #5a4b1e; }
+    .muted { color: #9aa0a6; }
+    .breadcrumb { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .breadcrumb button { padding: 4px 8px; font-size: 0.85rem; }
+    .hint { color: #9aa0a6; font-size: 0.85rem; margin-top: 8px; }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+    .row-gap { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1>{{ app_name }}</h1>
+        <div class="sub">v{{ app_version }} — TorrentLeech batch uploader</div>
+      </div>
+      <div class="controls">
+        <a href="/settings">Settings</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Browse Library</h2>
+      <div class="controls row-gap">
+        <label for="media-type" class="muted">Media type</label>
+        <select id="media-type">
+          {% for mt in media_types %}
+          <option value="{{ mt }}">{{ mt }}</option>
+          {% endfor %}
+        </select>
+        <button class="ghost" id="refresh">Refresh</button>
+      </div>
+
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div class="file-list" id="file-list"></div>
+
+      <div class="actions">
+        <button class="primary" id="add-queue">Add Selected to Queue</button>
+        <span class="muted" id="selected-count">0 selected</span>
+      </div>
+      <div class="hint">This view only shows enabled media roots and skips excluded folders from settings.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Queue</h2>
+      <div class="actions">
+        <button class="ghost" id="reload-queue">Reload</button>
+      </div>
+      <div class="row-gap"></div>
+      <table class="queue-table" id="queue-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Type</th>
+            <th>Release Name</th>
+            <th>Category</th>
+            <th>Tags</th>
+            <th>Status</th>
+            <th>Message</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const categoryOptions = {{ category_options | tojson }};
+    const mediaTypeSelect = document.getElementById('media-type');
+    const fileList = document.getElementById('file-list');
+    const breadcrumb = document.getElementById('breadcrumb');
+    const selectedCount = document.getElementById('selected-count');
+    const selected = new Map();
+
+    let currentPath = '';
+    let currentDefaultCategory = null;
+
+    function clearSelections() {
+      selected.clear();
+      selectedCount.textContent = '0 selected';
+    }
+
+    function updateSelectedCount() {
+      selectedCount.textContent = `${selected.size} selected`;
+    }
+
+    function makeBreadcrumb(root, path, parent) {
+      breadcrumb.innerHTML = '';
+      const rootBtn = document.createElement('button');
+      rootBtn.textContent = root.split('/').pop() || root;
+      rootBtn.onclick = () => browse('');
+      breadcrumb.appendChild(rootBtn);
+
+      if (parent) {
+        const upBtn = document.createElement('button');
+        upBtn.textContent = '.. (up)';
+        upBtn.onclick = () => browse(parent);
+        breadcrumb.appendChild(upBtn);
+      }
+
+      const pathBadge = document.createElement('span');
+      pathBadge.className = 'badge';
+      pathBadge.textContent = path;
+      breadcrumb.appendChild(pathBadge);
+    }
+
+    async function browse(path = '') {
+      clearSelections();
+      const mediaType = mediaTypeSelect.value;
+      const response = await fetch(`/api/browse?media_type=${encodeURIComponent(mediaType)}&path=${encodeURIComponent(path)}`);
+      const data = await response.json();
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+      currentPath = data.path;
+      currentDefaultCategory = data.default_category;
+      makeBreadcrumb(data.root || data.path, data.path, data.parent);
+      fileList.innerHTML = '';
+      data.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'file-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.onchange = () => {
+          if (checkbox.checked) {
+            selected.set(item.path, item);
+          } else {
+            selected.delete(item.path);
+          }
+          updateSelectedCount();
+        };
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = item.name;
+        name.title = item.path;
+        name.onclick = () => {
+          if (item.is_dir) {
+            browse(item.path);
+          }
+        };
+        const size = document.createElement('div');
+        size.className = 'muted';
+        size.textContent = item.size;
+        row.appendChild(checkbox);
+        row.appendChild(name);
+        row.appendChild(size);
+        fileList.appendChild(row);
+      });
+    }
+
+    async function addQueue() {
+      if (!selected.size) return;
+      const mediaType = mediaTypeSelect.value;
+      const items = Array.from(selected.values()).map(item => {
+        const defaultCategory = currentDefaultCategory || categoryOptions[mediaType][0].id;
+        return {
+          media_type: mediaType,
+          path: item.path,
+          category: defaultCategory,
+        };
+      });
+
+      const res = await fetch('/api/queue/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || 'Failed to add queue');
+        return;
+      }
+      clearSelections();
+      await loadQueue();
+    }
+
+    function statusBadge(status) {
+      return `<span class="status ${status}">${status}</span>`;
+    }
+
+    function categorySelect(mediaType, value) {
+      const options = categoryOptions[mediaType]
+        .map(o => `<option value="${o.id}" ${o.id === value ? 'selected' : ''}>${o.label}</option>`)
+        .join('');
+      return `<select data-field="category">${options}</select>`;
+    }
+
+    async function updateQueueRow(id, row) {
+      const releaseName = row.querySelector('input[data-field="release_name"]').value;
+      const category = row.querySelector('select[data-field="category"]').value;
+      const tags = row.querySelector('input[data-field="tags"]').value;
+
+      await fetch('/api/queue/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, release_name: releaseName, category, tags })
+      });
+      await loadQueue();
+    }
+
+    async function deleteQueueRow(id) {
+      await fetch('/api/queue/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      await loadQueue();
+    }
+
+    async function loadQueue() {
+      const res = await fetch('/api/queue');
+      const rows = await res.json();
+      const tbody = document.querySelector('#queue-table tbody');
+      tbody.innerHTML = '';
+      rows.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.id}</td>
+          <td>${item.media_type}</td>
+          <td><input data-field="release_name" value="${item.release_name}" /></td>
+          <td>${categorySelect(item.media_type, item.category)}</td>
+          <td><input data-field="tags" value="${item.tags || ''}" placeholder="tag1,tag2" /></td>
+          <td>${statusBadge(item.status)}</td>
+          <td>${item.message || ''}</td>
+          <td>
+            <button class="ghost" data-action="save">Save</button>
+            <button class="ghost" data-action="delete">Delete</button>
+          </td>
+        `;
+        tr.querySelector('button[data-action="save"]').onclick = () => updateQueueRow(item.id, tr);
+        tr.querySelector('button[data-action="delete"]').onclick = () => deleteQueueRow(item.id);
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('refresh').onclick = () => browse(currentPath);
+    document.getElementById('add-queue').onclick = addQueue;
+    document.getElementById('reload-queue').onclick = loadQueue;
+
+    mediaTypeSelect.onchange = () => browse('');
+
+    browse('');
+    loadQueue();
+  </script>
+</body>
+</html>

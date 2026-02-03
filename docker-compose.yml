@@ -1,0 +1,23 @@
+services:
+  tlt:
+    build: .
+    container_name: tlt
+    ports:
+      - "5001:5001"
+    environment:
+      - TL_ANNOUNCE_KEY=${TL_ANNOUNCE_KEY}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - TLT_DB_PATH=/app/data/tlt.db
+      - TLT_OUTPUT_DIR=/app/output
+      - TLT_RUN_WORKER=1
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+      - ${MEDIA_PATH:-/volume/media}:/volume/media:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

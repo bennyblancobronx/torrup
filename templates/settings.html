@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Iosevka", "IBM Plex Sans", "Segoe UI", sans-serif;
+      background: #0f0f12;
+      color: #e9e9ef;
+      min-height: 100vh;
+    }
+    a { color: #8be9fd; text-decoration: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    h1 { font-size: 1.6rem; margin-bottom: 6px; }
+    .sub { color: #9aa0a6; margin-bottom: 18px; }
+    .panel { background: #15151b; border: 1px solid #242430; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; color: #c2c2d1; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 260px; }
+    .field { margin-bottom: 12px; }
+    label { display: block; margin-bottom: 6px; color: #9aa0a6; }
+    input, textarea, select, button {
+      background: #1e1e27; color: #e9e9ef; border: 1px solid #2d2d3a; border-radius: 6px;
+      padding: 8px 10px; font-size: 0.95rem; width: 100%;
+    }
+    textarea { min-height: 90px; }
+    button { cursor: pointer; font-weight: 600; width: auto; }
+    button.primary { background: #8be9fd; color: #0f0f12; border-color: #8be9fd; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 8px; border-bottom: 1px solid #2a2a36; text-align: left; }
+    .muted { color: #9aa0a6; font-size: 0.85rem; }
+    .actions { display: flex; gap: 10px; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1>{{ app_name }} Settings</h1>
+        <div class="sub">v{{ app_version }} — Everything is editable here</div>
+      </div>
+      <div class="actions">
+        <a href="/">Back to app</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>General</h2>
+      <div class="row">
+        <div class="col">
+          <div class="field">
+            <label>Browse Base</label>
+            <input id="browse_base" value="{{ settings['browse_base'] }}" />
+            <div class="muted">Default base path for your clean library.</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label>Output Dir</label>
+            <input id="output_dir" value="{{ settings['output_dir'] }}" />
+            <div class="muted">Where .torrent, .nfo, and .xml sidecars are written.</div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Exclude Folders (comma-separated)</label>
+        <input id="exclude_dirs" value="{{ settings['exclude_dirs'] }}" />
+        <div class="muted">Folders containing these names are hidden from browse.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Media Roots + Defaults</h2>
+      <table id="media-roots">
+        <thead>
+          <tr>
+            <th>Media Type</th>
+            <th>Enabled</th>
+            <th>Path</th>
+            <th>Default Category</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in media_roots %}
+          <tr>
+            <td>{{ r.media_type }}</td>
+            <td><input type="checkbox" data-field="enabled" {% if r.enabled %}checked{% endif %} /></td>
+            <td><input data-field="path" value="{{ r.path }}" /></td>
+            <td>
+              <select data-field="default_category">
+                {% for opt in category_options[r.media_type] %}
+                <option value="{{ opt.id }}" {% if opt.id == r.default_category %}selected{% endif %}>{{ opt.label }}</option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="muted" style="margin-top: 8px;">Magazines default to Books → EBooks.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Naming Templates</h2>
+      <div class="row">
+        {% for key, tpl in templates.items() %}
+        <div class="col">
+          <div class="field">
+            <label>{{ key }}</label>
+            <input data-template="{{ key }}" value="{{ tpl }}" />
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="muted">Templates are guidance only; you can edit per item in the queue.</div>
+    </div>
+
+    <div class="panel">
+      <div class="actions">
+        <button class="primary" id="save">Save Settings</button>
+        <span class="muted" id="status"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function saveSettings() {
+      const data = {
+        browse_base: document.getElementById('browse_base').value,
+        output_dir: document.getElementById('output_dir').value,
+        exclude_dirs: document.getElementById('exclude_dirs').value,
+        media_roots: [],
+        templates: {},
+      };
+
+      document.querySelectorAll('#media-roots tbody tr').forEach(row => {
+        const media_type = row.children[0].textContent.trim();
+        const enabled = row.querySelector('input[data-field="enabled"]').checked;
+        const path = row.querySelector('input[data-field="path"]').value;
+        const default_category = row.querySelector('select[data-field="default_category"]').value;
+        data.media_roots.push({ media_type, enabled, path, default_category });
+      });
+
+      document.querySelectorAll('input[data-template]').forEach(input => {
+        data.templates[input.dataset.template] = input.value;
+      });
+
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const out = await res.json();
+      const status = document.getElementById('status');
+      status.textContent = out.success ? 'Saved' : (out.error || 'Save failed');
+    }
+
+    document.getElementById('save').onclick = saveSettings;
+  </script>
+</body>
+</html>

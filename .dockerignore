@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Git
+.git
+.gitignore
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Project specific
+.claude/
+docs/
+reference/
+scripts/
+*.md
+
+# Runtime data (use volumes instead)
+*.db
+output/
+data/
+
+# Environment
+.env
+.env.local
+
+# Tests
+tests/
+*.test.py
