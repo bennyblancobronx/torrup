@@ -1,10 +1,10 @@
 # Torrup - Torrent uploader for TorrentLeech
 
-Simple GUI for browsing a clean media library, queueing items, generating torrents + NFOs, and uploading to TorrentLeech.
+Web UI + CLI for browsing media libraries, queuing items, generating torrents + NFOs, and uploading to TorrentLeech.
 
 ## Version
 
-0.1.0
+0.1.2
 
 ## Features
 
@@ -13,14 +13,32 @@ Simple GUI for browsing a clean media library, queueing items, generating torren
 - Duplicate check via TorrentLeech search API
 - NFO generation using MediaInfo (file paths stripped)
 - .torrent creation via mktorrent with private flag + source tag
-- Basic XML sidecar for each prepared release
-- Fully editable settings UI
+- Metadata extraction via exiftool (optional)
+- Thumbnail extraction via ffmpeg (optional)
+- CLI with 13 commands (browse, queue, prepare, upload, settings, etc.)
+- Health check endpoint (/health)
+- Configurable logging
+
+## Security
+
+- CSRF protection on all POST endpoints
+- Rate limiting (Flask-Limiter)
+- Security headers (X-Frame-Options, CSP, etc.)
+- Input validation and path traversal prevention
+- No debug mode in production
+
+## Tests
+
+- 206 passing tests
+- 100% code coverage
 
 ## Prerequisites
 
 - Python 3.11+
 - mediainfo (CLI)
 - mktorrent (CLI)
+- exiftool (CLI, optional - for metadata extraction)
+- ffmpeg (CLI, optional - for thumbnail extraction)
 
 ## Environment
 
@@ -31,8 +49,6 @@ Simple GUI for browsing a clean media library, queueing items, generating torren
 | TORRUP_DB_PATH | No | SQLite DB path (default: ./torrup.db) |
 | TORRUP_OUTPUT_DIR | No | Output directory (default: ./output) |
 | TORRUP_RUN_WORKER | No | Run background queue worker (default: 1) |
-| TORRUP_AUTH_USER | No | Basic auth username (optional) |
-| TORRUP_AUTH_PASS | No | Basic auth password (optional) |
 
 Generate a secret key:
 ```bash
@@ -64,17 +80,6 @@ docker run --rm -p 5001:5001 \
   torrup
 ```
 
-With optional basic auth:
-```bash
-docker run --rm -p 5001:5001 \
-  -e TL_ANNOUNCE_KEY=your_passkey \
-  -e SECRET_KEY=your_generated_key \
-  -e TORRUP_AUTH_USER=admin \
-  -e TORRUP_AUTH_PASS=your_password \
-  -v /volume/media:/volume/media:ro \
-  torrup
-```
-
 ## Directory Structure
 
 ```
@@ -88,8 +93,8 @@ torrup/
 
 ## Platform Support
 
-- 0.1.x - Docker, macOS
-- Planned - Linux, Windows
+- 0.1.x - Docker
+- Planned - macOS, Linux, Windows
 
 ## Roadmap
 

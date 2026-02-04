@@ -1,10 +1,10 @@
 # Torrup - Torrent uploader for TorrentLeech
 
-**Version:** 0.1.0
+**Version:** 0.1.2
 
 ## What It Is
 
-Torrup is a local-first web UI for creating and uploading torrents to TorrentLeech. It provides queue-based batch uploads, configurable settings, and a TorrentLeech-compliant upload flow.
+Torrup is a local-first web UI + CLI for creating and uploading torrents to TorrentLeech. It provides queue-based batch uploads, configurable settings, and a TorrentLeech-compliant upload flow.
 
 ## What It Does
 
@@ -15,12 +15,17 @@ Torrup is a local-first web UI for creating and uploading torrents to TorrentLee
 - Check for duplicates via TorrentLeech search API
 - Upload to TorrentLeech via API
 - Track upload status per item
+- Metadata extraction via exiftool (optional)
+- Thumbnail extraction via ffmpeg (optional)
+- CLI with 13 commands for scripting/automation
+- Health check endpoint for monitoring
+- Security: CSRF, rate limiting, security headers
 
 ## Tech Stack
 
 - **Backend:** Python 3.11 + Flask
 - **Database:** SQLite
-- **External Tools:** mediainfo, mktorrent
+- **External Tools:** mediainfo, mktorrent, exiftool (optional), ffmpeg (optional)
 - **Deployment:** Docker (primary), native (secondary)
 
 ## Directory Structure
@@ -37,10 +42,13 @@ torrup/
 
 ## Status
 
-v0.1.0 - Core functionality complete:
-- Web UI for browsing and uploading
+v0.1.2 - Feature complete:
+- Web UI for browsing and uploading (5 pages)
+- CLI with 13 commands
 - Queue system with background worker
 - Settings management
+- Security hardening (CSRF, rate limiting, headers)
+- 206 tests with 100% coverage
 - Docker deployment ready
 
 ## Roadmap

@@ -71,18 +71,12 @@ htmlcov/
 .claude-flow/
 
 # Claude Code / AI tooling - DO NOT COMMIT
-.claude/settings.json
-.claude/settings.local.json
-.claude/helpers/
-.claude/agents/
-.claude/commands/
+.claude/
+.github/
 .mcp.json
 CLAUDE.md
-**/.claude/settings.json
-**/.claude/settings.local.json
-**/.claude/helpers/
-**/.claude/agents/
-**/.claude/commands/
+**/.claude/
+**/.github/
 **/.claude-flow/
 **/.mcp.json
 **/CLAUDE.md

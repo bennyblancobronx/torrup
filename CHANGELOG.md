@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Consolidated magazines media type into books (magazines removed as separate type)
 
+### Docs
+- Updated README.md and about.md to reflect v0.1.2 features (CLI, security, tests, metadata extraction)
+- Removed deprecated basic auth documentation
+- Updated platform support (macOS now planned, not current)
+
 ## [0.1.1] - 2026-02-03
 
 ### Added
