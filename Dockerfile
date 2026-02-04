@@ -1,4 +1,4 @@
-FROM python:3.11.7-slim
+FROM python:3.14.2-slim
 
 LABEL maintainer="project-maintainer" \
       version="0.1.0" \
