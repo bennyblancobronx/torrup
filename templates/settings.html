@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>{{ app_name }} Settings</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -66,10 +67,21 @@
           </div>
         </div>
       </div>
-      <div class="field">
-        <label>Exclude Folders (comma-separated)</label>
-        <input id="exclude_dirs" value="{{ settings['exclude_dirs'] }}" />
-        <div class="muted">Folders containing these names are hidden from browse.</div>
+      <div class="row">
+        <div class="col">
+          <div class="field">
+            <label>Release Group</label>
+            <input id="release_group" value="{{ settings.get('release_group', 'Torrup') }}" />
+            <div class="muted">Your release group name for NFO files and naming.</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label>Exclude Folders (comma-separated)</label>
+            <input id="exclude_dirs" value="{{ settings['exclude_dirs'] }}" />
+            <div class="muted">Folders containing these names are hidden from browse.</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -105,6 +117,30 @@
     </div>
 
     <div class="panel">
+      <h2>Metadata Extraction</h2>
+      <div class="row">
+        <div class="col">
+          <div class="field">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="extract_metadata" style="width: auto;" {% if settings.get('extract_metadata', '1') == '1' %}checked{% endif %} />
+              Extract Metadata (exiftool)
+            </label>
+            <div class="muted">Extract title, artist, album, year from files.</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="extract_thumbnails" style="width: auto;" {% if settings.get('extract_thumbnails', '1') == '1' %}checked{% endif %} />
+              Extract Thumbnails (ffmpeg)
+            </label>
+            <div class="muted">Extract video thumbnails and album artwork.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2>Naming Templates</h2>
       <div class="row">
         {% for key, tpl in templates.items() %}
@@ -128,11 +164,20 @@
   </div>
 
   <script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    function csrfHeaders() {
+      return csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+    }
+
     async function saveSettings() {
       const data = {
         browse_base: document.getElementById('browse_base').value,
         output_dir: document.getElementById('output_dir').value,
+        release_group: document.getElementById('release_group').value,
         exclude_dirs: document.getElementById('exclude_dirs').value,
+        extract_metadata: document.getElementById('extract_metadata').checked ? '1' : '0',
+        extract_thumbnails: document.getElementById('extract_thumbnails').checked ? '1' : '0',
         media_roots: [],
         templates: {},
       };
@@ -151,7 +196,7 @@
 
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify(data),
       });
       const out = await res.json();

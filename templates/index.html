@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>{{ app_name }}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -111,6 +112,7 @@
 
   <script>
     const categoryOptions = {{ category_options | tojson }};
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     const mediaTypeSelect = document.getElementById('media-type');
     const fileList = document.getElementById('file-list');
     const breadcrumb = document.getElementById('breadcrumb');
@@ -119,6 +121,16 @@
 
     let currentPath = '';
     let currentDefaultCategory = null;
+
+    function csrfHeaders() {
+      return csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
 
     function clearSelections() {
       selected.clear();
@@ -208,7 +220,7 @@
 
       const res = await fetch('/api/queue/add', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ items })
       });
       const data = await res.json();
@@ -238,7 +250,7 @@
 
       await fetch('/api/queue/update', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ id, release_name: releaseName, category, tags })
       });
       await loadQueue();
@@ -247,7 +259,7 @@
     async function deleteQueueRow(id) {
       await fetch('/api/queue/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ id })
       });
       await loadQueue();
@@ -261,13 +273,13 @@
       rows.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${item.id}</td>
-          <td>${item.media_type}</td>
-          <td><input data-field="release_name" value="${item.release_name}" /></td>
+          <td>${escapeHtml(String(item.id))}</td>
+          <td>${escapeHtml(item.media_type)}</td>
+          <td><input data-field="release_name" value="${escapeHtml(item.release_name)}" /></td>
           <td>${categorySelect(item.media_type, item.category)}</td>
-          <td><input data-field="tags" value="${item.tags || ''}" placeholder="tag1,tag2" /></td>
+          <td><input data-field="tags" value="${escapeHtml(item.tags || '')}" placeholder="tag1,tag2" /></td>
           <td>${statusBadge(item.status)}</td>
-          <td>${item.message || ''}</td>
+          <td>${escapeHtml(item.message || '')}</td>
           <td>
             <button class="ghost" data-action="save">Save</button>
             <button class="ghost" data-action="delete">Delete</button>

@@ -1,9 +1,15 @@
-FROM python:3.11-slim
+FROM python:3.11.7-slim
+
+LABEL maintainer="project-maintainer" \
+      version="0.1.0" \
+      description="Torrup - Torrent uploader for TorrentLeech"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     mediainfo \
     mktorrent \
     curl \
+    libimage-exiftool-perl \
+    ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --shell /bin/bash appuser
@@ -14,6 +20,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py ./
+COPY src ./src/
 COPY templates ./templates/
 
 RUN mkdir -p /app/data /app/output \
@@ -21,9 +28,9 @@ RUN mkdir -p /app/data /app/output \
 
 USER appuser
 
-ENV TLT_RUN_WORKER=1 \
-    TLT_DB_PATH=/app/data/tlt.db \
-    TLT_OUTPUT_DIR=/app/output
+ENV TORRUP_RUN_WORKER=1 \
+    TORRUP_DB_PATH=/app/data/torrup.db \
+    TORRUP_OUTPUT_DIR=/app/output
 
 EXPOSE 5001
 

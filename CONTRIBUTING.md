@@ -1,6 +1,6 @@
-# Contributing to TLT
+# Contributing to Torrup
 
-Thank you for your interest in contributing to TLT (TorrentLeechTool).
+Thank you for your interest in contributing to Torrup (Torrent uploader for TorrentLeech).
 
 ## Getting Started
 
@@ -34,7 +34,6 @@ Thank you for your interest in contributing to TLT (TorrentLeechTool).
 - Source code goes in `/src`
 - Tests go in `/tests`
 - Documentation goes in `/docs`
-- Configuration files go in `/config`
 - Utility scripts go in `/scripts`
 
 ### Commit Messages

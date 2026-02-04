@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
+  <title>{{ app_name }} - Browse Library</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <style>
+    /* Page-specific styles */
+    .browse-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-4);
+    }
+
+    .browse-controls label {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-secondary);
+    }
+
+    .browse-controls select {
+      width: auto;
+      min-width: 160px;
+    }
+
+    .path-nav {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+    }
+
+    .path-nav .breadcrumb {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .file-list-container {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: var(--space-4);
+    }
+
+    .file-list-header {
+      display: grid;
+      grid-template-columns: 40px 1fr 100px;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      background-color: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .file-list-header span {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-muted);
+    }
+
+    .file-list {
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .file-item {
+      display: grid;
+      grid-template-columns: 40px 1fr 100px;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+      align-items: center;
+      transition: background-color var(--duration-fast) var(--ease-out);
+    }
+
+    .file-item:last-child {
+      border-bottom: none;
+    }
+
+    .file-item:hover {
+      background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .file-item:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+      }
+    }
+
+    .file-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin: 0;
+      cursor: pointer;
+      accent-color: var(--color-accent);
+    }
+
+    .file-name {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-width: 0;
+    }
+
+    .file-name-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+    }
+
+    .file-name-text.is-folder {
+      color: var(--color-accent);
+      cursor: pointer;
+    }
+
+    .file-name-text.is-folder:hover {
+      color: var(--color-accent-hover);
+      text-decoration: underline;
+    }
+
+    .file-type-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+      background-color: var(--color-surface);
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
+
+    .file-type-icon.is-folder {
+      background-color: var(--color-accent-surface);
+      color: var(--color-accent-hover);
+    }
+
+    .file-size {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      text-align: right;
+    }
+
+    .selection-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-4);
+    }
+
+    .selection-info {
+      font-size: var(--font-size-base);
+      color: var(--color-text-secondary);
+    }
+
+    .selection-info strong {
+      color: var(--color-text);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .tip-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      padding: var(--space-3) var(--space-4);
+      background-color: var(--color-surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+    }
+
+    .empty-state {
+      padding: var(--space-12) var(--space-4);
+      text-align: center;
+      color: var(--color-text-muted);
+    }
+
+    .loading-state {
+      padding: var(--space-8) var(--space-4);
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <a href="/" class="header-logo">{{ app_name }}</a>
+      <span class="header-version">v{{ app_version }}</span>
+    </div>
+    <nav class="header-nav">
+      <a href="/" class="nav-item">Dashboard</a>
+      <a href="/browse" class="nav-item is-active">Browse</a>
+      <a href="/queue" class="nav-item">Queue</a>
+      <a href="/history" class="nav-item">History</a>
+      <a href="/settings" class="nav-item">Settings</a>
+    </nav>
+    <div class="header-status">
+      <span class="status-dot status-dot-success" id="worker-status"></span>
+      <span>Worker</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container page">
+    <div class="page-header">
+      <h1 class="page-title">Browse Library</h1>
+    </div>
+
+    <!-- Controls Row -->
+    <div class="card mb-6">
+      <div class="browse-controls">
+        <label for="media-type">Media Type:</label>
+        <select id="media-type">
+          {% for mt in media_types %}
+          <option value="{{ mt }}">{{ mt | capitalize }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="btn btn-ghost btn-sm" id="refresh-btn">Refresh</button>
+      </div>
+
+      <!-- Path Navigation -->
+      <div class="path-nav">
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-ghost btn-sm" id="home-btn" title="Go to root">Home</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="up-btn" title="Go up one level">Up</button>
+        </div>
+        <nav class="breadcrumb" id="breadcrumb" aria-label="Current path">
+          <span class="breadcrumb-item">/</span>
+        </nav>
+      </div>
+
+      <!-- File List -->
+      <div class="file-list-container">
+        <div class="file-list-header">
+          <span>
+            <input type="checkbox" id="select-all" title="Select all" />
+          </span>
+          <span>Name</span>
+          <span class="text-right">Size</span>
+        </div>
+        <div class="file-list" id="file-list">
+          <div class="loading-state">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Selection Summary -->
+      <div class="selection-summary">
+        <div class="selection-info">
+          Selected: <strong id="selected-count">0</strong> items (<strong id="selected-size">0 B</strong>)
+        </div>
+        <button type="button" class="btn btn-primary btn-md" id="add-queue-btn" disabled>
+          Add to Queue
+        </button>
+      </div>
+
+      <!-- Tip -->
+      <div class="tip-text">
+        Tip: Select folders to upload as releases. Click a folder name to navigate into it.
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // CSRF Token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    // DOM Elements
+    const mediaTypeSelect = document.getElementById('media-type');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const homeBtn = document.getElementById('home-btn');
+    const upBtn = document.getElementById('up-btn');
+    const breadcrumb = document.getElementById('breadcrumb');
+    const fileList = document.getElementById('file-list');
+    const selectAllCheckbox = document.getElementById('select-all');
+    const selectedCountEl = document.getElementById('selected-count');
+    const selectedSizeEl = document.getElementById('selected-size');
+    const addQueueBtn = document.getElementById('add-queue-btn');
+
+    // State
+    let currentPath = '';
+    let parentPath = null;
+    let currentDefaultCategory = null;
+    const selected = new Map();
+
+    // Category options from server
+    const categoryOptions = {{ category_options | tojson }};
+
+    // Helper: CSRF headers
+    function csrfHeaders() {
+      return csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+    }
+
+    // Helper: Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    // Helper: Format bytes
+    function formatBytes(bytes) {
+      if (bytes === 0 || bytes === null || bytes === undefined) return '--';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let i = 0;
+      let size = bytes;
+      while (size >= 1024 && i < units.length - 1) {
+        size /= 1024;
+        i++;
+      }
+      return size.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+    }
+
+    // Update selection count and size
+    function updateSelectionSummary() {
+      const count = selected.size;
+      let totalSize = 0;
+      for (const item of selected.values()) {
+        if (item.size_bytes) {
+          totalSize += item.size_bytes;
+        }
+      }
+      selectedCountEl.textContent = count;
+      selectedSizeEl.textContent = formatBytes(totalSize);
+      addQueueBtn.disabled = count === 0;
+    }
+
+    // Clear all selections
+    function clearSelections() {
+      selected.clear();
+      selectAllCheckbox.checked = false;
+      updateSelectionSummary();
+    }
+
+    // Render breadcrumb
+    function renderBreadcrumb(root, path) {
+      breadcrumb.innerHTML = '';
+
+      // Root segment
+      const rootName = root ? root.split('/').pop() || root : 'Root';
+      const rootSpan = document.createElement('span');
+      rootSpan.className = 'breadcrumb-item';
+      rootSpan.textContent = '/' + rootName;
+      rootSpan.style.cursor = 'pointer';
+      rootSpan.onclick = () => browse('');
+      breadcrumb.appendChild(rootSpan);
+
+      // Path segments
+      if (path) {
+        const segments = path.split('/').filter(Boolean);
+        let accumulated = '';
+        for (const segment of segments) {
+          accumulated += '/' + segment;
+          const sep = document.createElement('span');
+          sep.className = 'breadcrumb-separator';
+          sep.textContent = '>';
+          breadcrumb.appendChild(sep);
+
+          const segSpan = document.createElement('span');
+          segSpan.className = 'breadcrumb-item';
+          segSpan.textContent = segment;
+          const segPath = accumulated;
+          segSpan.style.cursor = 'pointer';
+          segSpan.onclick = () => browse(segPath);
+          breadcrumb.appendChild(segSpan);
+        }
+      }
+    }
+
+    // Browse directory
+    async function browse(path = '') {
+      clearSelections();
+      const mediaType = mediaTypeSelect.value;
+
+      fileList.innerHTML = '<div class="loading-state">Loading...</div>';
+
+      try {
+        const response = await fetch(
+          `/api/browse?media_type=${encodeURIComponent(mediaType)}&path=${encodeURIComponent(path)}`
+        );
+        const data = await response.json();
+
+        if (data.error) {
+          fileList.innerHTML = `<div class="empty-state">${escapeHtml(data.error)}</div>`;
+          return;
+        }
+
+        currentPath = data.path || '';
+        parentPath = data.parent || null;
+        currentDefaultCategory = data.default_category || null;
+
+        // Update breadcrumb
+        renderBreadcrumb(data.root, data.path);
+
+        // Update Up button state
+        upBtn.disabled = !parentPath;
+
+        // Render items
+        if (!data.items || data.items.length === 0) {
+          fileList.innerHTML = '<div class="empty-state">This folder is empty</div>';
+          return;
+        }
+
+        fileList.innerHTML = '';
+        for (const item of data.items) {
+          const row = document.createElement('div');
+          row.className = 'file-item';
+
+          // Checkbox
+          const checkboxCell = document.createElement('div');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.dataset.path = item.path;
+          checkbox.onchange = () => {
+            if (checkbox.checked) {
+              selected.set(item.path, item);
+            } else {
+              selected.delete(item.path);
+            }
+            updateSelectionSummary();
+            updateSelectAllState();
+          };
+          checkboxCell.appendChild(checkbox);
+          row.appendChild(checkboxCell);
+
+          // Name with icon
+          const nameCell = document.createElement('div');
+          nameCell.className = 'file-name';
+
+          const icon = document.createElement('span');
+          icon.className = 'file-type-icon' + (item.is_dir ? ' is-folder' : '');
+          icon.textContent = item.is_dir ? 'D' : 'F';
+          nameCell.appendChild(icon);
+
+          const nameText = document.createElement('span');
+          nameText.className = 'file-name-text' + (item.is_dir ? ' is-folder' : '');
+          nameText.textContent = item.name;
+          nameText.title = item.path;
+          if (item.is_dir) {
+            nameText.onclick = () => browse(item.path);
+          }
+          nameCell.appendChild(nameText);
+          row.appendChild(nameCell);
+
+          // Size
+          const sizeCell = document.createElement('div');
+          sizeCell.className = 'file-size';
+          sizeCell.textContent = item.is_dir ? '--' : formatBytes(item.size_bytes);
+          row.appendChild(sizeCell);
+
+          fileList.appendChild(row);
+        }
+      } catch (err) {
+        console.error('Browse error:', err);
+        fileList.innerHTML = '<div class="empty-state">Failed to load directory</div>';
+      }
+    }
+
+    // Update select-all checkbox state
+    function updateSelectAllState() {
+      const checkboxes = fileList.querySelectorAll('input[type="checkbox"]');
+      if (checkboxes.length === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+        return;
+      }
+      const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+      if (checkedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      } else if (checkedCount === checkboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+      } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+      }
+    }
+
+    // Select all handler
+    selectAllCheckbox.onchange = () => {
+      const checkboxes = fileList.querySelectorAll('input[type="checkbox"]');
+      for (const checkbox of checkboxes) {
+        checkbox.checked = selectAllCheckbox.checked;
+        checkbox.dispatchEvent(new Event('change'));
+      }
+    };
+
+    // Add to queue
+    async function addToQueue() {
+      if (selected.size === 0) return;
+
+      const mediaType = mediaTypeSelect.value;
+      const items = Array.from(selected.values()).map(item => {
+        const defaultCategory = currentDefaultCategory ||
+          (categoryOptions[mediaType] && categoryOptions[mediaType][0]?.id);
+        return {
+          media_type: mediaType,
+          path: item.path,
+          category: defaultCategory
+        };
+      });
+
+      addQueueBtn.disabled = true;
+      addQueueBtn.textContent = 'Adding...';
+
+      try {
+        const res = await fetch('/api/queue/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...csrfHeaders()
+          },
+          body: JSON.stringify({ items })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          clearSelections();
+          // Redirect to queue page
+          window.location.href = '/queue';
+        } else {
+          alert(data.error || 'Failed to add items to queue');
+          addQueueBtn.disabled = false;
+          addQueueBtn.textContent = 'Add to Queue';
+        }
+      } catch (err) {
+        console.error('Add to queue error:', err);
+        alert('Failed to add items to queue');
+        addQueueBtn.disabled = false;
+        addQueueBtn.textContent = 'Add to Queue';
+      }
+    }
+
+    // Event listeners
+    mediaTypeSelect.onchange = () => browse('');
+    refreshBtn.onclick = () => browse(currentPath);
+    homeBtn.onclick = () => browse('');
+    upBtn.onclick = () => {
+      if (parentPath !== null) {
+        browse(parentPath);
+      }
+    };
+    addQueueBtn.onclick = addToQueue;
+
+    // Initial load
+    browse('');
+  </script>
+</body>
+</html>

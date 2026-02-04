@@ -28,7 +28,7 @@ What actually happened.
 
 - OS: [e.g., macOS 14, Ubuntu 22.04]
 - Python version: [e.g., 3.11.5]
-- TLT version: [e.g., 0.1.0]
+- Torrup version: [e.g., 0.1.0]
 - Docker: [Yes/No, version if applicable]
 
 ## Logs

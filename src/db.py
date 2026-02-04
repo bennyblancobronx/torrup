@@ -10,6 +10,7 @@ from src.config import (
     DB_PATH,
     DEFAULT_EXCLUDES,
     DEFAULT_OUTPUT_DIR,
+    DEFAULT_RELEASE_GROUP,
     DEFAULT_TEMPLATES,
     MEDIA_TYPES,
 )
@@ -17,7 +18,7 @@ from src.config import (
 
 def db() -> sqlite3.Connection:
     """Get a database connection with row factory."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -58,10 +59,17 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL,
                 torrent_path TEXT,
                 nfo_path TEXT,
-                xml_path TEXT
+                xml_path TEXT,
+                thumb_path TEXT
             )
             """
         )
+
+        # Add thumb_path column if it doesn't exist (migration for existing DBs)
+        try:
+            conn.execute("ALTER TABLE queue ADD COLUMN thumb_path TEXT")
+        except Exception:
+            pass  # Column already exists
 
         # Defaults
         _ensure_setting(conn, "browse_base", "/volume/media")
@@ -82,6 +90,10 @@ def init_db() -> None:
 
         for k, v in DEFAULT_TEMPLATES.items():
             _ensure_setting(conn, f"template_{k}", v)
+
+        _ensure_setting(conn, "release_group", DEFAULT_RELEASE_GROUP)
+        _ensure_setting(conn, "extract_metadata", "1")
+        _ensure_setting(conn, "extract_thumbnails", "1")
 
         conn.commit()
 

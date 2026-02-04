@@ -1,0 +1,54 @@
+/**
+ * CrispByYosi Font Face Declarations
+ *
+ * IMPORTANT: CrispByYosi is the ONLY font allowed in Crisp Design Language.
+ *
+ * Weights available:
+ * - 100: Thin (display, decorative - rare)
+ * - 300: Light (captions, meta, code)
+ * - 400: Regular (body text, inputs)
+ * - 500: Medium (buttons, nav, labels, headings)
+ * - 700: Bold (page titles, hero text)
+ *
+ * Note: 600 (semibold) does NOT exist. Use 500 or 700 instead.
+ */
+
+@font-face {
+  font-family: 'CrispByYosi';
+  src: url('../fonts/CrispByYosi-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CrispByYosi';
+  src: url('../fonts/CrispByYosi-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CrispByYosi';
+  src: url('../fonts/CrispByYosi-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CrispByYosi';
+  src: url('../fonts/CrispByYosi-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CrispByYosi';
+  src: url('../fonts/CrispByYosi-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

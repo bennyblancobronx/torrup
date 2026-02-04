@@ -1,8 +1,8 @@
-# TLT Plan (TorrentLeechTool)
+# Torrup Plan (Historical)
 
 ## Project Summary
 
-Build a local-first GUI upload tool named **TLT - TorrentLeechTool** with queue + batch uploads, configurable settings, and TorrentLeech-compliant upload flow. This is version **v0.1.0**. Metadata lookups are deferred to **0.2.x**.
+Build a local-first GUI upload tool named **Torrup** (Torrent uploader for TorrentLeech) with queue + batch uploads, configurable settings, and TorrentLeech-compliant upload flow. This is version **v0.1.0**. Metadata lookups are deferred to **0.2.x**.
 
 ## Current Findings (Desktop Feasibility)
 
@@ -13,8 +13,8 @@ Build a local-first GUI upload tool named **TLT - TorrentLeechTool** with queue 
 
 ## Scope (v0.1.0)
 
-- 100% CLI first (all actions available via CLI; GUI is a thin layer on top)
-- Local web GUI
+- Local web GUI (primary)
+- CLI planned but not implemented in v0.1.x
 - Media-type browsing from clean library roots
 - Queue + batch uploads with background processing
 - Duplicate check via TorrentLeech search API
@@ -54,7 +54,7 @@ All category defaults are editable in settings.
 - **Base library root**: `/volume/media`
 - **Exclude folders**: `torrents,downloads,tmp,trash,incomplete,processing`
 - **Output dir**: configurable in settings
-- **Queue DB**: configurable in settings (default `./tlt.db`)
+- **Queue DB**: configurable in settings (default `./torrup.db`)
 - **Staging**: use qBittorrent content folder only (no separate staging root)
 - **Watch folders**: qBittorrent watch folder per media type (for `.torrent` files)
 
@@ -63,8 +63,6 @@ All category defaults are editable in settings.
 1. Browse clean library by media type.
 2. Select multiple items and add to queue.
 3. Background worker processes queue:
-   - Link/copy into qBittorrent content folder (staging in-place)
-   - Rename within staging to match naming template
    - Generate NFO (MediaInfo)
    - Create torrent (mktorrent)
    - Write XML sidecar
@@ -79,26 +77,25 @@ All category defaults are editable in settings.
 - Output directory
 - Exclude folder list
 - Naming templates
-- qBittorrent content folder (staging target)
-- qBittorrent watch folders per media type (drop .torrent files here)
+- qBittorrent integration is deferred
 
-## CLI Surface (required)
+## CLI Surface (planned)
 
-All functionality must be callable from CLI; the GUI only wraps these commands.
+CLI is planned for v0.2.x; GUI is currently primary.
 
 Planned commands:
 
-- `tlt settings get`
-- `tlt settings set`
-- `tlt browse <media_type> [path]`
-- `tlt queue add <media_type> <path> [--category N] [--tags csv] [--release-name name]`
-- `tlt queue list`
-- `tlt queue update <id> [--release-name name] [--category N] [--tags csv] [--status status]`
-- `tlt queue delete <id>`
-- `tlt queue run` (worker loop)
-- `tlt prepare <id>` (NFO + torrent + XML only)
-- `tlt upload <id>` (upload only)
-- `tlt check-dup <release_name>`
+- `torrup settings get`
+- `torrup settings set`
+- `torrup browse <media_type> [path]`
+- `torrup queue add <media_type> <path> [--category N] [--tags csv] [--release-name name]`
+- `torrup queue list`
+- `torrup queue update <id> [--release-name name] [--category N] [--tags csv] [--status status]`
+- `torrup queue delete <id>`
+- `torrup queue run` (worker loop)
+- `torrup prepare <id>` (NFO + torrent + XML only)
+- `torrup upload <id>` (upload only)
+- `torrup check-dup <release_name>`
 
 ## Version Roadmap
 
@@ -131,12 +128,12 @@ Planned commands:
 - **Compose wiring**: service name, build context, container name, ports, restart policy, and healthcheck.
 - **Network**: attach to `vpn-stack` and route through gluetun.
 - **Volumes**: library roots read-only, output dir read-write, DB location persisted.
-- **qBittorrent**: watch folder per media type for `.torrent` files; content staging uses the qBittorrent content folder.
-- **Environment**: `TL_ANNOUNCE_KEY`, `SECRET_KEY`, `TLT_DB_PATH`, `TLT_OUTPUT_DIR`, `TLT_RUN_WORKER`.
+- **qBittorrent**: deferred (no watch folder or staging integration in v0.1.x).
+- **Environment**: `TL_ANNOUNCE_KEY`, `SECRET_KEY`, `TORRUP_DB_PATH`, `TORRUP_OUTPUT_DIR`, `TORRUP_RUN_WORKER`.
 - **Dependencies**: install `mediainfo` and `mktorrent` in the image.
-- **Access control**: CLI is authoritative; GUI is a thin wrapper.
+- **Access control**: GUI-only in v0.1.x; consider CLI when implemented.
 - **Runbook**: build/start commands and expected URL.
-- **Torrent compliance**: v1 only, private flag set, source tag `TorrentLeech.org`, announce URL includes passkey.
+- **Torrent compliance**: v1 only, private flag set, source tag `TorrentLeech.org`, announce URL includes passkey at `/a/<passkey>/announce`.
 
 ## Source Docs and References (local copies)
 

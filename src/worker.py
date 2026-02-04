@@ -2,20 +2,38 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 import time
+import traceback
 from pathlib import Path
 
 from src.api import check_exists, upload_torrent
-from src.db import db, get_output_dir
+from src.db import db, get_output_dir, get_setting
+from src.logger import logger
 from src.utils import (
     create_torrent,
+    extract_metadata,
+    extract_thumbnail,
     generate_nfo,
     get_folder_size,
     now_iso,
     sanitize_release_name,
     write_xml_metadata,
 )
+
+
+def sanitize_error_message(error: Exception) -> str:
+    """Sanitize error message to avoid leaking sensitive info."""
+    msg = str(error)
+    # Remove file paths
+    msg = re.sub(r'/[^\s]+', '[path]', msg)
+    # Remove potential secrets patterns
+    msg = re.sub(r'(key|token|secret|password)[=:]\s*\S+', r'\1=[redacted]', msg, flags=re.IGNORECASE)
+    # Truncate long messages
+    if len(msg) > 200:
+        msg = msg[:200] + '...'
+    return msg
 
 
 def update_queue_status(
@@ -37,8 +55,12 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
     category = int(item["category"])
     tags = item["tags"]
     out_dir = get_output_dir(conn)
+    release_group = get_setting(conn, "release_group") or "Torrup"
+
+    logger.info(f"Processing queue item {item_id}: {release_name}")
 
     if not path.exists():
+        logger.warning(f"Item {item_id}: Path not found - {path}")
         update_queue_status(conn, item_id, "failed", "Path not found")
         return
 
@@ -49,7 +71,19 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
         return
 
     try:
-        nfo_path = generate_nfo(path, release_name, out_dir)
+        # Extract metadata using exiftool
+        metadata = {}
+        if get_setting(conn, "extract_metadata") != "0":
+            metadata = extract_metadata(path, media_type)
+
+        # Extract thumbnail/artwork using ffmpeg
+        thumb_path = None
+        if get_setting(conn, "extract_thumbnails") != "0":
+            thumb_path = extract_thumbnail(path, out_dir, release_name, media_type)
+
+        nfo_path = generate_nfo(
+            path, release_name, out_dir, media_type, release_group, metadata
+        )
         torrent_path = create_torrent(path, release_name, out_dir)
         size_bytes = get_folder_size(path) if path.is_dir() else path.stat().st_size
         xml_path = write_xml_metadata(
@@ -61,18 +95,22 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
             nfo_path,
             tags,
             out_dir,
+            metadata,
+            thumb_path,
         )
 
         conn.execute(
             """
-            UPDATE queue SET torrent_path = ?, nfo_path = ?, xml_path = ?, updated_at = ?
+            UPDATE queue SET torrent_path = ?, nfo_path = ?, xml_path = ?, thumb_path = ?, updated_at = ?
             WHERE id = ?
             """,
-            (str(torrent_path), str(nfo_path), str(xml_path), now_iso(), item_id),
+            (str(torrent_path), str(nfo_path), str(xml_path), str(thumb_path) if thumb_path else None, now_iso(), item_id),
         )
         conn.commit()
+        logger.info(f"Item {item_id}: Preparation complete - torrent and NFO generated")
     except Exception as e:
-        update_queue_status(conn, item_id, "failed", f"Prepare failed: {e}")
+        logger.error(f"Item {item_id}: Prepare failed - {e}\n{traceback.format_exc()}")
+        update_queue_status(conn, item_id, "failed", f"Prepare failed: {sanitize_error_message(e)}")
         return
 
     update_queue_status(conn, item_id, "uploading", "Uploading to TorrentLeech")
@@ -80,15 +118,19 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
     try:
         result = upload_torrent(Path(torrent_path), Path(nfo_path), category, tags)
         if result.get("success"):
+            logger.info(f"Item {item_id}: Upload successful - torrent_id={result['torrent_id']}")
             update_queue_status(conn, item_id, "success", f"Uploaded: {result['torrent_id']}")
         else:
+            logger.warning(f"Item {item_id}: Upload failed - {result.get('error')}")
             update_queue_status(conn, item_id, "failed", f"Upload failed: {result.get('error')}")
     except Exception as e:
-        update_queue_status(conn, item_id, "failed", f"Upload error: {e}")
+        logger.error(f"Item {item_id}: Upload error - {e}\n{traceback.format_exc()}")
+        update_queue_status(conn, item_id, "failed", f"Upload error: {sanitize_error_message(e)}")
 
 
 def queue_worker() -> None:
     """Main worker loop that processes queued items."""
+    logger.info("Queue worker started")
     while True:
         with db() as conn:
             row = conn.execute(

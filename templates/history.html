@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
+  <title>{{ app_name }} History</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Iosevka", "IBM Plex Sans", "Segoe UI", sans-serif;
+      background: #0f0f12;
+      color: #e9e9ef;
+      min-height: 100vh;
+    }
+    a { color: #8be9fd; text-decoration: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    h1 { font-size: 1.6rem; margin-bottom: 6px; }
+    .sub { color: #9aa0a6; margin-bottom: 18px; }
+    .panel { background: #15151b; border: 1px solid #242430; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; color: #c2c2d1; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 260px; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    select, input, button {
+      background: #1e1e27; color: #e9e9ef; border: 1px solid #2d2d3a; border-radius: 6px;
+      padding: 8px 10px; font-size: 0.95rem;
+    }
+    button { cursor: pointer; font-weight: 600; }
+    button.primary { background: #8be9fd; color: #0f0f12; border-color: #8be9fd; }
+    button.ghost { background: transparent; }
+    .muted { color: #9aa0a6; font-size: 0.85rem; }
+    .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    /* Tab switcher */
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .tab {
+      background: transparent;
+      color: #9aa0a6;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.1s ease-out;
+    }
+    .tab:hover { background: rgba(255, 255, 255, 0.05); color: #e9e9ef; }
+    .tab.active { background: #1e1e27; color: #e9e9ef; border-color: #2d2d3a; }
+
+    /* Filters */
+    .filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-group { display: flex; gap: 6px; align-items: center; }
+    .filter-group label { color: #9aa0a6; font-size: 0.85rem; white-space: nowrap; }
+    .filter-group select { min-width: 120px; }
+
+    /* History table */
+    .history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .history-table th, .history-table td { padding: 10px 12px; border-bottom: 1px solid #2a2a36; text-align: left; }
+    .history-table th {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9aa0a6;
+    }
+    .history-table tr { cursor: pointer; }
+    .history-table tr:hover td { background: #1c1c25; }
+    .history-table tr.selected td { background: #1e2530; }
+    .release-name { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tl-id { font-family: monospace; color: #8be9fd; }
+    .tl-id.none { color: #9aa0a6; }
+
+    /* Status badges */
+    .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; }
+    .status.success { background: #1f4d36; color: #4ade80; }
+    .status.failed { background: #5a1e1e; color: #f87171; }
+    .status.duplicate { background: #5a4b1e; color: #fbbf24; }
+
+    /* Details panel */
+    .details-panel {
+      background: #15151b;
+      border: 1px solid #242430;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 16px;
+      display: none;
+    }
+    .details-panel.visible { display: block; }
+    .details-panel h3 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: #e9e9ef;
+      word-break: break-all;
+    }
+    .details-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 8px 16px;
+      margin-bottom: 16px;
+    }
+    .details-label { color: #9aa0a6; font-size: 0.85rem; }
+    .details-value { color: #e9e9ef; font-size: 0.9rem; word-break: break-all; }
+    .files-list { margin-top: 8px; }
+    .files-list h4 { font-size: 0.9rem; color: #9aa0a6; margin-bottom: 8px; }
+    .file-item {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 0.85rem;
+      font-family: monospace;
+    }
+    .file-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
+    .file-status.ok { background: #1f4d36; color: #4ade80; }
+    .file-status.missing { background: #5a1e1e; color: #f87171; }
+
+    /* Activity log */
+    .activity-log { max-height: 500px; overflow-y: auto; }
+    .activity-item {
+      display: flex;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #242430;
+      font-size: 0.9rem;
+    }
+    .activity-time { color: #9aa0a6; font-family: monospace; font-size: 0.8rem; min-width: 140px; }
+    .activity-action {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      min-width: 60px;
+      text-align: center;
+    }
+    .activity-action.add { background: #1f4d36; color: #4ade80; }
+    .activity-action.edit { background: #2a3642; color: #8be9fd; }
+    .activity-action.delete { background: #5a1e1e; color: #f87171; }
+    .activity-action.upload { background: #2a3642; color: #8be9fd; }
+    .activity-action.success { background: #1f4d36; color: #4ade80; }
+    .activity-action.failed { background: #5a1e1e; color: #f87171; }
+    .activity-message { flex: 1; }
+
+    .empty-state { text-align: center; padding: 48px 16px; color: #9aa0a6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1>{{ app_name }} History</h1>
+        <div class="sub">v{{ app_version }} — Upload history and activity logs</div>
+      </div>
+      <div class="actions">
+        <a href="/">Dashboard</a>
+        <a href="/settings">Settings</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="uploads">Uploads</button>
+        <button class="tab" data-tab="activity">Activity</button>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label for="filter-status">Status:</label>
+          <select id="filter-status">
+            <option value="all">All</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+            <option value="duplicate">Duplicate</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-date">Date:</label>
+          <select id="filter-date">
+            <option value="all">All Time</option>
+            <option value="7" selected>Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-type">Type:</label>
+          <select id="filter-type">
+            <option value="all">All</option>
+            {% for mt in media_types %}
+            <option value="{{ mt }}">{{ mt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="ghost" id="refresh">Refresh</button>
+      </div>
+
+      <!-- Uploads Tab Content -->
+      <div id="uploads-content">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Release Name</th>
+              <th>Status</th>
+              <th>TL ID</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+          </tbody>
+        </table>
+        <div id="empty-uploads" class="empty-state" style="display: none;">
+          No upload history found matching your filters.
+        </div>
+      </div>
+
+      <!-- Activity Tab Content -->
+      <div id="activity-content" style="display: none;">
+        <div class="activity-log" id="activity-log">
+        </div>
+        <div id="empty-activity" class="empty-state" style="display: none;">
+          No activity recorded yet.
+        </div>
+      </div>
+    </div>
+
+    <!-- Details Panel -->
+    <div class="details-panel" id="details-panel">
+      <h3 id="details-title">Release Name</h3>
+      <div class="details-grid">
+        <div class="details-label">TorrentLeech ID:</div>
+        <div class="details-value" id="details-tl-id">--</div>
+
+        <div class="details-label">Category:</div>
+        <div class="details-value" id="details-category">--</div>
+
+        <div class="details-label">Tags:</div>
+        <div class="details-value" id="details-tags">--</div>
+
+        <div class="details-label">Uploaded:</div>
+        <div class="details-value" id="details-timestamp">--</div>
+
+        <div class="details-label">Source Path:</div>
+        <div class="details-value" id="details-path">--</div>
+      </div>
+      <div class="files-list">
+        <h4>Files Generated:</h4>
+        <div id="details-files"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const categoryOptions = {{ category_options | tojson }};
+
+    let currentTab = 'uploads';
+    let historyData = [];
+    let selectedItemId = null;
+
+    function csrfHeaders() {
+      return csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '--';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-CA');
+    }
+
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '--';
+      const d = new Date(dateStr);
+      return d.toLocaleString('en-CA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function getCategoryLabel(mediaType, categoryId) {
+      const options = categoryOptions[mediaType] || [];
+      const found = options.find(o => o.id === categoryId || o.id === String(categoryId));
+      return found ? found.label : categoryId;
+    }
+
+    function statusBadge(status) {
+      const normalized = (status || '').toLowerCase();
+      return `<span class="status ${normalized}">${normalized || 'unknown'}</span>`;
+    }
+
+    function filterByDate(items, days) {
+      if (days === 'all') return items;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - parseInt(days, 10));
+      return items.filter(item => {
+        const itemDate = new Date(item.updated_at || item.created_at);
+        return itemDate >= cutoff;
+      });
+    }
+
+    function filterByStatus(items, status) {
+      if (status === 'all') return items;
+      return items.filter(item => item.status === status);
+    }
+
+    function filterByType(items, mediaType) {
+      if (mediaType === 'all') return items;
+      return items.filter(item => item.media_type === mediaType);
+    }
+
+    function applyFilters(items) {
+      const statusFilter = document.getElementById('filter-status').value;
+      const dateFilter = document.getElementById('filter-date').value;
+      const typeFilter = document.getElementById('filter-type').value;
+
+      let filtered = items;
+      filtered = filterByStatus(filtered, statusFilter);
+      filtered = filterByDate(filtered, dateFilter);
+      filtered = filterByType(filtered, typeFilter);
+
+      return filtered;
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/queue');
+        const allItems = await res.json();
+
+        // Filter to only completed statuses (success, failed, duplicate)
+        historyData = allItems.filter(item =>
+          ['success', 'failed', 'duplicate'].includes(item.status)
+        );
+
+        // Sort by updated_at descending (most recent first)
+        historyData.sort((a, b) => {
+          const dateA = new Date(a.updated_at || a.created_at || 0);
+          const dateB = new Date(b.updated_at || b.created_at || 0);
+          return dateB - dateA;
+        });
+
+        renderHistory();
+      } catch (err) {
+        console.error('Failed to load history:', err);
+      }
+    }
+
+    function renderHistory() {
+      const tbody = document.getElementById('history-tbody');
+      const emptyState = document.getElementById('empty-uploads');
+
+      const filtered = applyFilters(historyData);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      tbody.innerHTML = filtered.map(item => `
+        <tr data-id="${item.id}" class="${selectedItemId === item.id ? 'selected' : ''}">
+          <td>${formatDate(item.updated_at || item.created_at)}</td>
+          <td class="release-name" title="${escapeHtml(item.release_name)}">${escapeHtml(item.release_name)}</td>
+          <td>${statusBadge(item.status)}</td>
+          <td class="tl-id ${item.tl_id ? '' : 'none'}">${item.tl_id ? '#' + item.tl_id : '--'}</td>
+        </tr>
+      `).join('');
+
+      // Add click handlers
+      tbody.querySelectorAll('tr').forEach(row => {
+        row.addEventListener('click', () => showDetails(parseInt(row.dataset.id, 10)));
+      });
+    }
+
+    function showDetails(itemId) {
+      const item = historyData.find(i => i.id === itemId);
+      if (!item) return;
+
+      selectedItemId = itemId;
+      renderHistory(); // Update selection highlight
+
+      const panel = document.getElementById('details-panel');
+      document.getElementById('details-title').textContent = item.release_name;
+      document.getElementById('details-tl-id').textContent = item.tl_id ? '#' + item.tl_id : '--';
+      document.getElementById('details-category').textContent = getCategoryLabel(item.media_type, item.category);
+      document.getElementById('details-tags').textContent = item.tags || '--';
+      document.getElementById('details-timestamp').textContent = formatDateTime(item.updated_at || item.created_at);
+      document.getElementById('details-path').textContent = item.path || '--';
+
+      // Render generated files (inferred from typical Torrup output)
+      const filesContainer = document.getElementById('details-files');
+      const baseName = item.release_name || 'release';
+      const files = [
+        { name: baseName + '.torrent', status: item.status === 'success' ? 'ok' : 'missing' },
+        { name: baseName + '.nfo', status: item.status === 'success' ? 'ok' : 'missing' },
+        { name: baseName + '.xml', status: item.status === 'success' ? 'ok' : 'missing' }
+      ];
+
+      filesContainer.innerHTML = files.map(f => `
+        <div class="file-item">
+          <span class="file-status ${f.status}">${f.status.toUpperCase()}</span>
+          <span>${escapeHtml(f.name)}</span>
+        </div>
+      `).join('');
+
+      panel.classList.add('visible');
+    }
+
+    function hideDetails() {
+      selectedItemId = null;
+      document.getElementById('details-panel').classList.remove('visible');
+      renderHistory();
+    }
+
+    // Activity log (simulated from queue data since /api/activity doesn't exist)
+    function renderActivity() {
+      const logContainer = document.getElementById('activity-log');
+      const emptyState = document.getElementById('empty-activity');
+
+      // Generate activity entries from history data
+      const activities = [];
+      historyData.forEach(item => {
+        // Add entry for final status
+        activities.push({
+          time: item.updated_at || item.created_at,
+          action: item.status,
+          message: item.release_name + (item.message ? ': ' + item.message : '')
+        });
+      });
+
+      // Sort by time descending
+      activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+      // Apply date filter
+      const dateFilter = document.getElementById('filter-date').value;
+      const filtered = dateFilter === 'all' ? activities : activities.filter(a => {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - parseInt(dateFilter, 10));
+        return new Date(a.time) >= cutoff;
+      });
+
+      if (filtered.length === 0) {
+        logContainer.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      logContainer.innerHTML = filtered.map(a => `
+        <div class="activity-item">
+          <span class="activity-time">${formatDateTime(a.time)}</span>
+          <span class="activity-action ${a.action}">${a.action}</span>
+          <span class="activity-message">${escapeHtml(a.message)}</span>
+        </div>
+      `).join('');
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+
+      // Update tab buttons
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+      });
+
+      // Show/hide content
+      document.getElementById('uploads-content').style.display = tab === 'uploads' ? 'block' : 'none';
+      document.getElementById('activity-content').style.display = tab === 'activity' ? 'block' : 'none';
+
+      // Hide details when switching tabs
+      hideDetails();
+
+      // Re-render appropriate content
+      if (tab === 'uploads') {
+        renderHistory();
+      } else {
+        renderActivity();
+      }
+    }
+
+    // Event listeners
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    document.getElementById('filter-status').addEventListener('change', () => {
+      if (currentTab === 'uploads') renderHistory();
+    });
+
+    document.getElementById('filter-date').addEventListener('change', () => {
+      if (currentTab === 'uploads') {
+        renderHistory();
+      } else {
+        renderActivity();
+      }
+    });
+
+    document.getElementById('filter-type').addEventListener('change', () => {
+      if (currentTab === 'uploads') renderHistory();
+    });
+
+    document.getElementById('refresh').addEventListener('click', loadHistory);
+
+    // Close details panel when clicking outside
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('details-panel');
+      const table = document.querySelector('.history-table');
+      if (panel.classList.contains('visible') &&
+          !panel.contains(e.target) &&
+          !table.contains(e.target)) {
+        hideDetails();
+      }
+    });
+
+    // Initial load
+    loadHistory();
+  </script>
+</body>
+</html>

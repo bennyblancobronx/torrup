@@ -48,7 +48,7 @@ data/
 logs/
 *.log
 output/
-tlt.db
+torrup.db
 
 # Secrets
 .env

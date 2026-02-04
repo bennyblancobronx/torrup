@@ -1,15 +1,18 @@
 services:
-  tlt:
+  torrup:
     build: .
-    container_name: tlt
+    container_name: torrup
     ports:
       - "5001:5001"
     environment:
       - TL_ANNOUNCE_KEY=${TL_ANNOUNCE_KEY}
-      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
-      - TLT_DB_PATH=/app/data/tlt.db
-      - TLT_OUTPUT_DIR=/app/output
-      - TLT_RUN_WORKER=1
+      - SECRET_KEY=${SECRET_KEY}
+      - TORRUP_DB_PATH=/app/data/torrup.db
+      - TORRUP_OUTPUT_DIR=/app/output
+      - TORRUP_RUN_WORKER=1
+      # Optional: Uncomment to enable basic auth
+      # - TORRUP_AUTH_USER=${TORRUP_AUTH_USER}
+      # - TORRUP_AUTH_PASS=${TORRUP_AUTH_PASS}
     volumes:
       - ./data:/app/data
       - ./output:/app/output

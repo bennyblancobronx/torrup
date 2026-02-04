@@ -10,9 +10,11 @@ External integrations, dependencies, and obligations.
 |----------|-----|---------|
 | Upload | `https://www.torrentleech.org/torrents/upload/apiupload` | Upload torrent + NFO |
 | Search | `https://www.torrentleech.org/api/torrentsearch` | Duplicate check |
-| Tracker | `https://tracker.torrentleech.org` | Announce URL |
+| Tracker | `https://tracker.torrentleech.org` | Announce base URL |
 
 **Authentication:** Single key (Torrent Passkey) via `TL_ANNOUNCE_KEY` env var.
+
+**Announce URL format:** `https://tracker.torrentleech.org/a/<passkey>/announce`
 
 **Rate Limits:** None documented. Use responsibly.
 
@@ -47,10 +49,10 @@ External integrations, dependencies, and obligations.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `TL_ANNOUNCE_KEY` | Yes | - | TorrentLeech passkey |
-| `SECRET_KEY` | No | dev-secret | Flask session key |
-| `TLT_DB_PATH` | No | ./tlt.db | SQLite database path |
-| `TLT_OUTPUT_DIR` | No | ./output | Output directory for torrents/NFOs |
-| `TLT_RUN_WORKER` | No | 1 | Enable background worker (1=yes, 0=no) |
+| `SECRET_KEY` | Yes | - | Flask session key (app will not start without this) |
+| `TORRUP_DB_PATH` | No | ./torrup.db | SQLite database path |
+| `TORRUP_OUTPUT_DIR` | No | ./output | Output directory for torrents/NFOs |
+| `TORRUP_RUN_WORKER` | No | 1 | Enable background worker (1=yes, 0=no) |
 
 ## Data Storage
 
@@ -61,7 +63,7 @@ External integrations, dependencies, and obligations.
 - `media_roots` - Per-media-type paths and defaults
 - `queue` - Upload queue with status tracking
 
-**Location:** Configurable via `TLT_DB_PATH`, defaults to `./tlt.db`
+**Location:** Configurable via `TORRUP_DB_PATH`, defaults to `./torrup.db`
 
 ## Docker Integration
 
@@ -81,5 +83,6 @@ External integrations, dependencies, and obligations.
 - Torrent v1 only (no v2 or hybrid)
 - Private flag must be set
 - Source tag: `TorrentLeech.org`
+- Announce URL must include passkey: `/a/<passkey>/announce`
 - NFO required for every upload
 - Paths must be stripped from MediaInfo output

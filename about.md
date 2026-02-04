@@ -1,10 +1,10 @@
-# TLT - TorrentLeechTool
+# Torrup - Torrent uploader for TorrentLeech
 
 **Version:** 0.1.0
 
 ## What It Is
 
-TLT is a local-first web UI for creating and uploading torrents to TorrentLeech. It provides queue-based batch uploads, configurable settings, and a TorrentLeech-compliant upload flow.
+Torrup is a local-first web UI for creating and uploading torrents to TorrentLeech. It provides queue-based batch uploads, configurable settings, and a TorrentLeech-compliant upload flow.
 
 ## What It Does
 
@@ -26,7 +26,7 @@ TLT is a local-first web UI for creating and uploading torrents to TorrentLeech.
 ## Directory Structure
 
 ```
-tlt/
+torrup/
   src/           - Source code modules
   templates/     - HTML templates
   static/        - Static assets

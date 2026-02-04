@@ -5,12 +5,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-APP_NAME = "TLT - TorrentLeechTool"
+APP_NAME = "Torrup"
 APP_VERSION = "0.1.0"
 
 # Paths
-DB_PATH = Path(os.environ.get("TLT_DB_PATH", "./tlt.db"))
-DEFAULT_OUTPUT_DIR = Path(os.environ.get("TLT_OUTPUT_DIR", "./output"))
+DB_PATH = Path(os.environ.get("TORRUP_DB_PATH", "./torrup.db"))
+DEFAULT_OUTPUT_DIR = Path(os.environ.get("TORRUP_OUTPUT_DIR", "./output"))
 DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # TorrentLeech
@@ -20,7 +20,7 @@ TL_SEARCH_URL = "https://www.torrentleech.org/api/torrentsearch"
 ANNOUNCE_KEY = os.environ.get("TL_ANNOUNCE_KEY", "")
 
 # Worker
-RUN_WORKER = os.environ.get("TLT_RUN_WORKER", "1") == "1"
+RUN_WORKER = os.environ.get("TORRUP_RUN_WORKER", "1") == "1"
 
 # Media types
 MEDIA_TYPES = ["music", "movies", "tv", "books", "magazines"]
@@ -67,4 +67,105 @@ DEFAULT_TEMPLATES = {
     "magazines": "Title.Issue.Year.Format-ReleaseGroup",
 }
 
+DEFAULT_RELEASE_GROUP = "Torrup"
+
 DEFAULT_EXCLUDES = "torrents,downloads,tmp,trash,incomplete,processing"
+
+# NFO Templates - clean, informative format for each media type
+NFO_TEMPLATES = {
+    "movies": """================================================================================
+                              {release_name}
+================================================================================
+
+  Release Group  : {release_group}
+  Category       : Movies
+  Source         : {source}
+  Resolution     : {resolution}
+
+--------------------------------------------------------------------------------
+                              MEDIA INFO
+--------------------------------------------------------------------------------
+{mediainfo}
+--------------------------------------------------------------------------------
+  Uploaded with Torrup
+  Generated: {timestamp}
+================================================================================
+""",
+
+    "tv": """================================================================================
+                              {release_name}
+================================================================================
+
+  Release Group  : {release_group}
+  Category       : TV
+  Source         : {source}
+  Resolution     : {resolution}
+
+--------------------------------------------------------------------------------
+                              MEDIA INFO
+--------------------------------------------------------------------------------
+{mediainfo}
+--------------------------------------------------------------------------------
+  Uploaded with Torrup
+  Generated: {timestamp}
+================================================================================
+""",
+
+    "music": """================================================================================
+                              {release_name}
+================================================================================
+
+  Release Group  : {release_group}
+  Category       : Music
+  Format         : {format}
+
+--------------------------------------------------------------------------------
+                              TRACK INFO
+--------------------------------------------------------------------------------
+{mediainfo}
+--------------------------------------------------------------------------------
+  Uploaded with Torrup
+  Generated: {timestamp}
+================================================================================
+""",
+
+    "books": """================================================================================
+                              {release_name}
+================================================================================
+
+  Release Group  : {release_group}
+  Category       : Books
+  Format         : {format}
+
+--------------------------------------------------------------------------------
+                              FILE INFO
+--------------------------------------------------------------------------------
+  Files          : {file_count}
+  Total Size     : {size}
+
+--------------------------------------------------------------------------------
+  Uploaded with Torrup
+  Generated: {timestamp}
+================================================================================
+""",
+
+    "magazines": """================================================================================
+                              {release_name}
+================================================================================
+
+  Release Group  : {release_group}
+  Category       : Magazines
+  Format         : {format}
+
+--------------------------------------------------------------------------------
+                              FILE INFO
+--------------------------------------------------------------------------------
+  Files          : {file_count}
+  Total Size     : {size}
+
+--------------------------------------------------------------------------------
+  Uploaded with Torrup
+  Generated: {timestamp}
+================================================================================
+""",
+}
