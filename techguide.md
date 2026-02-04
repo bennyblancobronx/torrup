@@ -99,7 +99,6 @@ Background processing loop:
 - movies
 - tv
 - books
-- magazines (maps to Books/EBooks category)
 
 ### Category Defaults
 
@@ -109,7 +108,6 @@ Background processing loop:
 | movies | 14 | Movies :: BlurayRip |
 | tv | 26 | TV :: Episodes (SD) |
 | books | 45 | Books :: EBooks |
-| magazines | 45 | Books :: EBooks |
 
 ### Naming Templates
 
@@ -118,7 +116,6 @@ Editable in settings:
 - tv: `Name.S##E##.Resolution.Source.Audio.Codec.Video.Codec-ReleaseGroup`
 - music: `Artist.Name.Album.Name.Source.Audio.Codec-ReleaseGroup`
 - books: `Title.Author.Year.Format-ReleaseGroup`
-- magazines: `Title.Issue.Year.Format-ReleaseGroup`
 
 ### NFO Templates
 
@@ -151,7 +148,7 @@ Template variables:
 - `{resolution}` - Extracted from release name (1080p, 4K, etc.)
 - `{format}` - For music/books (FLAC, EPUB, etc.)
 - `{mediainfo}` - Output from mediainfo command
-- `{file_count}` - For books/magazines
+- `{file_count}` - For books
 - `{size}` - Human-readable size
 - `{timestamp}` - Generation timestamp
 

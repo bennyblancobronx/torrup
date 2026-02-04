@@ -101,7 +101,7 @@ Wireframes and component specifications for each page.
 
 | Component | Crisp Class | Description |
 |-----------|-------------|-------------|
-| **Media Type Dropdown** | `.input` (select) | music, movies, tv, books, magazines |
+| **Media Type Dropdown** | `.input` (select) | music, movies, tv, books |
 | **Breadcrumb** | `.text-sm` | Current path with clickable segments |
 | **Navigation Buttons** | `.btn-ghost` | Home (root) and Up (parent directory) |
 | **File List** | `.table` | Checkbox, type icon, name (clickable), size |
@@ -302,7 +302,6 @@ Wireframes and component specifications for each page.
 |  |  movies    | [x]     | [/media/movies         ]| [BluRay v]     |
 |  |  tv        | [x]     | [/media/tv             ]| [Epis. v]      |
 |  |  books     | [ ]     | [/media/books          ]| [EBooks v]     |
-|  |  magazines | [ ]     | [/media/magazines      ]| [EBooks v]     |
 |  +------------------------------------------------------------------+
 |                                                                      |
 |  +------------------------------------------------------------------+

@@ -140,7 +140,7 @@ torrup browse <media_type> [path]
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `media_type` | Yes | One of: music, movies, tv, books, magazines |
+| `media_type` | Yes | One of: music, movies, tv, books |
 | `path` | No | Subdirectory to browse (relative to media root) |
 
 **Flags:**
@@ -197,7 +197,7 @@ torrup queue add <media_type> <path> [options]
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `media_type` | Yes | One of: music, movies, tv, books, magazines |
+| `media_type` | Yes | One of: music, movies, tv, books |
 | `path` | Yes | Path to media item |
 
 **Flags:**
@@ -217,7 +217,6 @@ torrup queue add <media_type> <path> [options]
 | movies | 14 | Movies :: BlurayRip |
 | tv | 26 | TV :: Episodes (SD) |
 | books | 45 | Books :: EBooks |
-| magazines | 45 | Books :: EBooks |
 
 **Examples:**
 

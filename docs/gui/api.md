@@ -175,7 +175,7 @@ Browse media library folders.
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
-| `media_type` | string | yes | music, movies, tv, books, magazines |
+| `media_type` | string | yes | music, movies, tv, books |
 | `path` | string | no | Subdirectory path (relative to media root) |
 
 **Response:**

@@ -23,7 +23,7 @@ ANNOUNCE_KEY = os.environ.get("TL_ANNOUNCE_KEY", "")
 RUN_WORKER = os.environ.get("TORRUP_RUN_WORKER", "1") == "1"
 
 # Media types
-MEDIA_TYPES = ["music", "movies", "tv", "books", "magazines"]
+MEDIA_TYPES = ["music", "movies", "tv", "books"]
 
 CATEGORY_OPTIONS = {
     "music": [
@@ -54,9 +54,6 @@ CATEGORY_OPTIONS = {
         {"id": 45, "label": "Books :: EBooks"},
         {"id": 46, "label": "Books :: Comics"},
     ],
-    "magazines": [
-        {"id": 45, "label": "Books :: EBooks"},
-    ],
 }
 
 DEFAULT_TEMPLATES = {
@@ -64,7 +61,6 @@ DEFAULT_TEMPLATES = {
     "tv": "Name.S##E##.Resolution.Source.Audio.Codec.Video.Codec-ReleaseGroup",
     "music": "Artist.Name.Album.Name.Source.Audio.Codec-ReleaseGroup",
     "books": "Title.Author.Year.Format-ReleaseGroup",
-    "magazines": "Title.Issue.Year.Format-ReleaseGroup",
 }
 
 DEFAULT_RELEASE_GROUP = "Torrup"
@@ -149,23 +145,4 @@ NFO_TEMPLATES = {
 ================================================================================
 """,
 
-    "magazines": """================================================================================
-                              {release_name}
-================================================================================
-
-  Release Group  : {release_group}
-  Category       : Magazines
-  Format         : {format}
-
---------------------------------------------------------------------------------
-                              FILE INFO
---------------------------------------------------------------------------------
-  Files          : {file_count}
-  Total Size     : {size}
-
---------------------------------------------------------------------------------
-  Uploaded with Torrup
-  Generated: {timestamp}
-================================================================================
-""",
 }

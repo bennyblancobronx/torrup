@@ -8,7 +8,7 @@ Simple GUI for browsing a clean media library, queueing items, generating torren
 
 ## Features
 
-- Browse media roots by type (music, movies, TV, books, magazines)
+- Browse media roots by type (music, movies, TV, books)
 - Queue + batch uploads with editable release names and tags
 - Duplicate check via TorrentLeech search API
 - NFO generation using MediaInfo (file paths stripped)

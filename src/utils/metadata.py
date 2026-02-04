@@ -93,7 +93,6 @@ def _find_primary_file(path: Path, media_type: str) -> Path | None:
         "tv": [".mkv", ".mp4", ".avi", ".m4v"],
         "music": [".flac", ".mp3", ".m4a", ".ogg", ".opus"],
         "books": [".epub", ".pdf", ".mobi", ".azw3"],
-        "magazines": [".pdf", ".epub"],
     }
 
     exts = extensions.get(media_type, extensions["movies"])
@@ -125,7 +124,7 @@ def _normalize_metadata(raw: dict, media_type: str) -> dict:
         result["genre"] = raw.get("Genre") or ""
         result["track_number"] = raw.get("TrackNumber") or ""
 
-    elif media_type in ("books", "magazines"):
+    elif media_type == "books":
         result["title"] = raw.get("Title") or ""
         result["author"] = raw.get("Author") or raw.get("Creator") or ""
         result["publisher"] = raw.get("Publisher") or ""

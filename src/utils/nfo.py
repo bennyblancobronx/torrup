@@ -48,7 +48,7 @@ def generate_nfo(
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError):
             mediainfo = "  MediaInfo not available"
 
-    # Count files and calculate size for books/magazines
+    # Count files and calculate size for books
     file_count = sum(1 for f in path.rglob("*") if f.is_file()) if path.is_dir() else 1
     try:
         size_bytes = get_folder_size(path) if path.is_dir() else path.stat().st_size
@@ -124,7 +124,7 @@ def _format_metadata_section(metadata: dict, media_type: str) -> str:
         if metadata.get("genre"):
             lines.append(f"  Genre          : {metadata['genre']}")
 
-    elif media_type in ("books", "magazines"):
+    elif media_type == "books":
         if metadata.get("title"):
             lines.append(f"  Title          : {metadata['title']}")
         if metadata.get("author"):

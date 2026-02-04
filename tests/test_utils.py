@@ -755,15 +755,15 @@ class TestNormalizeMetadata:
         assert result.get("season") == "2"
         assert result.get("episode") == "5"
 
-    def test_normalize_metadata_magazines(self):
-        """Verify magazines metadata is normalized."""
+    def test_normalize_metadata_books_with_publisher(self):
+        """Verify books metadata with publisher is normalized."""
         raw = {
-            "Title": "Magazine Name",
+            "Title": "Book Name",
             "Publisher": "Pub Co",
             "CreateDate": "2024-06-15"
         }
-        result = _normalize_metadata(raw, "magazines")
-        assert result.get("title") == "Magazine Name"
+        result = _normalize_metadata(raw, "books")
+        assert result.get("title") == "Book Name"
         assert result.get("publisher") == "Pub Co"
         assert result.get("year") == "2024"
 

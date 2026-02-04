@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-02-04
+
+### Changed
+- Consolidated magazines media type into books (magazines removed as separate type)
+
 ## [0.1.1] - 2026-02-03
 
 ### Added
@@ -22,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Logging framework** (src/logger.py) - configurable logging (2026-02-03)
 - **Health check endpoint** (/health) - database connectivity check (2026-02-03)
 - **Page routes** - /browse, /queue, /history routes added (2026-02-03)
-- NFO templates for each media type (movies, tv, music, books, magazines)
+- NFO templates for each media type (movies, tv, music, books)
 - Release group setting in config and settings UI
 - NFO generation with templates, mediainfo, source/resolution extraction
 - Metadata extraction using exiftool

@@ -29,7 +29,6 @@ Build a local-first GUI upload tool named **Torrup** (Torrent uploader for Torre
 - movies
 - tv
 - books
-- magazines (mapped to Books → EBooks)
 
 ## Naming Schema (editable templates)
 
@@ -37,7 +36,6 @@ Build a local-first GUI upload tool named **Torrup** (Torrent uploader for Torre
 - tv: `Name.S##E##.Resolution.Source.Audio.Codec.Video.Codec-ReleaseGroup`
 - music: `Artist.Name.Album.Name.Source.Audio.Codec-ReleaseGroup`
 - books: `Title.Author.Year.Format-ReleaseGroup`
-- magazines: `Title.Issue.Year.Format-ReleaseGroup`
 
 ## Categories (defaults)
 
@@ -45,7 +43,6 @@ Build a local-first GUI upload tool named **Torrup** (Torrent uploader for Torre
 - movies: `14` (Movies :: BlurayRip)
 - tv: `26` (TV :: Episodes SD)
 - books: `45` (Books :: EBooks)
-- magazines: `45` (Books :: EBooks)
 
 All category defaults are editable in settings.
 

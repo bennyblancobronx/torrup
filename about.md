@@ -8,7 +8,7 @@ Torrup is a local-first web UI for creating and uploading torrents to TorrentLee
 
 ## What It Does
 
-- Browse media libraries by type (music, movies, tv, books, magazines)
+- Browse media libraries by type (music, movies, tv, books)
 - Queue multiple items for batch upload
 - Generate NFO files using MediaInfo
 - Create torrents with mktorrent (private flag, source tag)
