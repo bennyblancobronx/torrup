@@ -30,9 +30,16 @@ def pick_piece_size(total_bytes: int) -> int:
 
 
 def create_torrent(path: Path, release_name: str, out_dir: Path) -> Path:
-    """Create torrent file using mktorrent."""
+    """Create torrent file using mktorrent.
+
+    Raises:
+        ValueError: If directory contains too many files
+    """
     output_path = out_dir / f"{release_name}.torrent"
-    total_size = get_folder_size(path) if path.is_dir() else path.stat().st_size
+    try:
+        total_size = get_folder_size(path) if path.is_dir() else path.stat().st_size
+    except ValueError as e:
+        raise ValueError(f"Cannot create torrent: {e}") from e
     piece_size = pick_piece_size(total_size)
     # TL docs specify personalized announce URLs in the form /a/<passkey>/announce
     announce_url = (

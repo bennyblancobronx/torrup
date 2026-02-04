@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
+from contextlib import contextmanager
 from pathlib import Path
+
+# Reentrant thread lock for SQLite operations (allows nested db() calls)
+_db_lock = threading.RLock()
 
 from src.config import (
     CATEGORY_OPTIONS,
@@ -16,11 +21,20 @@ from src.config import (
 )
 
 
-def db() -> sqlite3.Connection:
-    """Get a database connection with row factory."""
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+@contextmanager
+def db():
+    """Database connection context manager with thread safety."""
+    with _db_lock:
+        conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
 
 def init_db() -> None:

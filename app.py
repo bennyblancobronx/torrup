@@ -7,11 +7,13 @@ from __future__ import annotations
 import os
 import sys
 import threading
+from hmac import compare_digest
 
 from flask import Flask, request, Response
 from flask_wtf.csrf import CSRFProtect
 
 from src.config import RUN_WORKER
+from src.extensions import limiter
 from src.logger import logger
 
 # Optional basic auth - only enabled if both env vars are set
@@ -32,13 +34,16 @@ app.secret_key = secret_key
 app.config["WTF_CSRF_HEADERS"] = ["X-CSRFToken"]
 csrf = CSRFProtect(app)
 
+# Initialize rate limiting
+limiter.init_app(app)
+
 
 @app.before_request
 def check_auth():
     """Optional basic auth - only if TORRUP_AUTH_USER and TORRUP_AUTH_PASS are set."""
     if AUTH_USER and AUTH_PASS:
         auth = request.authorization
-        if not auth or auth.username != AUTH_USER or auth.password != AUTH_PASS:
+        if not auth or not compare_digest(auth.username, AUTH_USER) or not compare_digest(auth.password, AUTH_PASS):
             return Response(
                 "Authentication required",
                 401,
@@ -53,6 +58,7 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
     return response
 
 # Register routes

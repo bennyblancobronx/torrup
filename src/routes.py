@@ -8,6 +8,8 @@ from typing import Any
 
 from flask import Blueprint, jsonify, render_template, request
 
+from src.extensions import limiter
+
 # Security constants
 VALID_FIELDS = frozenset(["release_name", "category", "tags", "status"])
 VALID_STATUSES = frozenset(["queued", "preparing", "uploading", "success", "failed", "duplicate"])
@@ -60,10 +62,10 @@ def health():
     try:
         with db() as conn:
             conn.execute("SELECT 1")
-        return jsonify({"status": "healthy", "version": "0.1.0"}), 200
+        return jsonify({"status": "healthy", "version": APP_VERSION}), 200
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        return jsonify({"status": "unhealthy", "error": str(e)}), 503
+        return jsonify({"status": "unhealthy"}), 503
 
 
 @bp.route("/")
@@ -132,6 +134,7 @@ def history_page() -> str:
 
 
 @bp.route("/api/settings", methods=["POST"])
+@limiter.limit("5 per minute")
 def update_settings() -> tuple[Any, int]:
     """Update application settings."""
     data = request.json or {}
@@ -171,6 +174,7 @@ def update_settings() -> tuple[Any, int]:
 
 
 @bp.route("/api/browse")
+@limiter.limit("60 per minute")
 def browse() -> tuple[Any, int]:
     """Browse media library folders."""
     media_type = request.args.get("media_type", "music")
@@ -198,12 +202,18 @@ def browse() -> tuple[Any, int]:
     except (ValueError, RuntimeError):
         return jsonify({"error": "Access denied"}), 403
 
+    # Reject symlinks to prevent directory traversal
+    if path.is_symlink():
+        return jsonify({"error": "Symlinks not allowed"}), 403
+
     if not path.exists():
         return jsonify({"error": "Path not found"}), 404
 
     items = []
     if path.is_dir():
         for item in sorted(path.iterdir()):
+            if item.is_symlink():
+                continue
             if is_excluded(item, excludes):
                 continue
             try:
@@ -220,6 +230,17 @@ def browse() -> tuple[Any, int]:
                 )
             except PermissionError:
                 continue
+            except ValueError:
+                # Directory has too many files, show with unknown size
+                items.append(
+                    {
+                        "name": item.name,
+                        "path": str(item),
+                        "is_dir": is_dir,
+                        "size": "Too many files",
+                        "size_bytes": -1,
+                    }
+                )
 
     return (
         jsonify(
@@ -236,6 +257,7 @@ def browse() -> tuple[Any, int]:
 
 
 @bp.route("/api/queue/add", methods=["POST"])
+@limiter.limit("10 per minute")
 def add_queue() -> tuple[Any, int]:
     """Add items to upload queue."""
     data = request.json or {}
@@ -255,6 +277,7 @@ def list_queue() -> tuple[Any, int]:
 
 
 @bp.route("/api/queue/update", methods=["POST"])
+@limiter.limit("30 per minute")
 def update_queue() -> tuple[Any, int]:
     """Update a queue item."""
     data = request.json or {}
@@ -318,6 +341,7 @@ def update_queue() -> tuple[Any, int]:
 
 
 @bp.route("/api/queue/delete", methods=["POST"])
+@limiter.limit("20 per minute")
 def delete_queue() -> tuple[Any, int]:
     """Delete a queue item."""
     data = request.json or {}

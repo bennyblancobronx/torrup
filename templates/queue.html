@@ -6,65 +6,87 @@
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>{{ app_name }} - Queue</title>
   <style>
+    :root {
+      --bg: #0f0f12; --bg-panel: #15151b; --bg-input: #1e1e27; --bg-edit: #1a1a22;
+      --border: #242430; --border-light: #2d2d3a;
+      --text: #e9e9ef; --text-muted: #9aa0a6; --text-heading: #c2c2d1;
+      --accent: #8be9fd; --accent-hover: #6dd5ed; --hover: #1c1c25;
+      --status-queued: #2a2a36; --status-progress: #2a3642;
+      --status-success-bg: #1f4d36; --status-success: #4ade80;
+      --status-failed-bg: #5a1e1e; --status-failed: #f87171;
+      --status-warn-bg: #5a4b1e; --status-warn: #fbbf24;
+    }
+    [data-theme="light"] {
+      --bg: #f5f5f7; --bg-panel: #ffffff; --bg-input: #f0f0f2; --bg-edit: #f8f8fa;
+      --border: #d0d0d8; --border-light: #c5c5cd;
+      --text: #1a1a1a; --text-muted: #666670; --text-heading: #333340;
+      --accent: #0077cc; --accent-hover: #005fa3; --hover: #e8e8ec;
+      --status-queued: #e0e0e5; --status-progress: #d0e8f0;
+      --status-success-bg: #d0f0d8; --status-success: #1a7f37;
+      --status-failed-bg: #f8d0d0; --status-failed: #cf222e;
+      --status-warn-bg: #f0e8c8; --status-warn: #9a6700;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: "Iosevka", "IBM Plex Sans", "Segoe UI", sans-serif;
-      background: #0f0f12;
-      color: #e9e9ef;
-      min-height: 100vh;
+      background: var(--bg); color: var(--text); min-height: 100vh;
     }
-    a { color: #8be9fd; text-decoration: none; }
+    a { color: var(--accent); text-decoration: none; }
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     h1 { font-size: 1.6rem; margin-bottom: 6px; }
-    .sub { color: #9aa0a6; margin-bottom: 18px; }
-    .panel { background: #15151b; border: 1px solid #242430; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; color: #c2c2d1; }
+    .sub { color: var(--text-muted); margin-bottom: 18px; }
+    .panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--text-heading); }
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
     .col { flex: 1; min-width: 260px; }
     .field { margin-bottom: 12px; }
-    label { display: block; margin-bottom: 6px; color: #9aa0a6; }
+    label { display: block; margin-bottom: 6px; color: var(--text-muted); }
     input, textarea, select, button {
-      background: #1e1e27; color: #e9e9ef; border: 1px solid #2d2d3a; border-radius: 6px;
+      background: var(--bg-input); color: var(--text); border: 1px solid var(--border-light); border-radius: 6px;
       padding: 8px 10px; font-size: 0.95rem;
     }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #8be9fd;
-    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
     button { cursor: pointer; font-weight: 600; }
-    button.primary { background: #8be9fd; color: #0f0f12; border-color: #8be9fd; }
-    button.primary:hover { background: #6dd5ed; }
+    button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-hover); }
     button.ghost { background: transparent; }
-    button.ghost:hover { background: #1e1e27; }
+    button.ghost:hover { background: var(--bg-input); }
     button.sm { padding: 4px 8px; font-size: 0.8rem; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 8px; border-bottom: 1px solid #2a2a36; text-align: left; }
-    th { color: #9aa0a6; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    tr:hover td { background: #1c1c25; }
-    .muted { color: #9aa0a6; font-size: 0.85rem; }
+    th, td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:hover td { background: var(--hover); }
+    .muted { color: var(--text-muted); font-size: 0.85rem; }
     .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .filter-tabs { display: flex; gap: 4px; }
     .filter-tabs button { padding: 6px 12px; }
-    .filter-tabs button.active { background: #2a2a36; color: #e9e9ef; }
+    .filter-tabs button.active { background: var(--status-queued); color: var(--text); }
     .status { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-    .status.queued { background: #2a2a36; color: #9aa0a6; }
-    .status.preparing { background: #2a3642; color: #8be9fd; }
-    .status.uploading { background: #2a3642; color: #8be9fd; }
-    .status.success { background: #1f4d36; color: #4ade80; }
-    .status.failed { background: #5a1e1e; color: #f87171; }
-    .status.duplicate { background: #5a4b1e; color: #fbbf24; }
+    .status.queued { background: var(--status-queued); color: var(--text-muted); }
+    .status.preparing { background: var(--status-progress); color: var(--accent); }
+    .status.uploading { background: var(--status-progress); color: var(--accent); }
+    .status.success { background: var(--status-success-bg); color: var(--status-success); }
+    .status.failed { background: var(--status-failed-bg); color: var(--status-failed); }
+    .status.duplicate { background: var(--status-warn-bg); color: var(--status-warn); }
     .actions-cell { display: flex; gap: 4px; }
-    .edit-panel { background: #1a1a22; border: 1px solid #2d2d3a; border-radius: 8px; padding: 16px; margin-top: 16px; display: none; }
+    .edit-panel { background: var(--bg-edit); border: 1px solid var(--border-light); border-radius: 8px; padding: 16px; margin-top: 16px; display: none; }
     .edit-panel.visible { display: block; }
-    .edit-panel h3 { font-size: 1rem; margin-bottom: 12px; color: #c2c2d1; }
+    .edit-panel h3 { font-size: 1rem; margin-bottom: 12px; color: var(--text-heading); }
     .edit-actions { display: flex; gap: 10px; margin-top: 12px; }
-    .hint { color: #9aa0a6; font-size: 0.85rem; margin-top: 12px; }
+    .hint { color: var(--text-muted); font-size: 0.85rem; margin-top: 12px; }
     .release-name { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .auto-refresh { display: flex; align-items: center; gap: 6px; color: #9aa0a6; font-size: 0.85rem; }
+    .auto-refresh { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 0.85rem; }
     .auto-refresh input { width: auto; }
+    .theme-toggle { cursor: pointer; background: none; border: none; padding: 4px 8px; display: flex; align-items: center; }
   </style>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 </head>
 <body>
   <div class="container">
@@ -74,6 +96,7 @@
         <div class="sub">v{{ app_version }} - Manage pending and active uploads</div>
       </div>
       <div class="controls">
+        <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         <a href="/">Dashboard</a>
         <a href="/settings">Settings</a>
       </div>
@@ -419,6 +442,14 @@
     // Initialize
     loadQueue();
     setupAutoRefresh();
+
+    // Theme toggle
+    document.getElementById('theme-toggle').onclick = () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    };
   </script>
 </body>
 </html>

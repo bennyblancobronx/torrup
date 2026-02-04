@@ -58,7 +58,8 @@ class TestHealthRoute:
         assert res.status_code == 503
         data = res.get_json()
         assert data["status"] == "unhealthy"
-        assert "error" in data
+        # Note: error details are not exposed for security (no information leakage)
+        assert "error" not in data
 
 
 class TestBrowseRoute:

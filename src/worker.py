@@ -131,11 +131,19 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
 def queue_worker() -> None:
     """Main worker loop that processes queued items."""
     logger.info("Queue worker started")
+    backoff = 2
+    max_backoff = 60
     while True:
-        with db() as conn:
-            row = conn.execute(
-                "SELECT * FROM queue WHERE status = 'queued' ORDER BY id ASC LIMIT 1"
-            ).fetchone()
-            if row:
-                process_queue_item(conn, row)
-        time.sleep(2)
+        try:
+            with db() as conn:
+                row = conn.execute(
+                    "SELECT * FROM queue WHERE status = 'queued' ORDER BY id ASC LIMIT 1"
+                ).fetchone()
+                if row:
+                    process_queue_item(conn, row)
+            backoff = 2  # Reset backoff on success
+            time.sleep(2)
+        except Exception as e:
+            logger.error(f"Worker loop error: {e}", exc_info=True)
+            time.sleep(backoff)
+            backoff = min(backoff * 2, max_backoff)  # Exponential backoff

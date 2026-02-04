@@ -91,6 +91,27 @@ class TestGetFolderSize:
         result = get_folder_size(tmp_path)
         assert result == 11
 
+    def test_folder_size_exceeds_max_files(self, tmp_path):
+        """Verify ValueError is raised when file count exceeds max_files."""
+        # Create more files than the limit
+        for i in range(10):
+            (tmp_path / f"file{i}.txt").write_text("x")
+
+        # Should raise ValueError when max_files is 5
+        with pytest.raises(ValueError) as exc_info:
+            get_folder_size(tmp_path, max_files=5)
+        assert "more than 5 files" in str(exc_info.value)
+
+    def test_folder_size_at_max_files_limit(self, tmp_path):
+        """Verify folder with exactly max_files does not raise."""
+        # Create exactly 5 files
+        for i in range(5):
+            (tmp_path / f"file{i}.txt").write_text("x")
+
+        # Should not raise when max_files is 5
+        result = get_folder_size(tmp_path, max_files=5)
+        assert result == 5  # 5 files, each 1 byte
+
 
 class TestPickPieceSize:
     """Tests for pick_piece_size function."""

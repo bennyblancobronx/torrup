@@ -50,7 +50,10 @@ def generate_nfo(
 
     # Count files and calculate size for books/magazines
     file_count = sum(1 for f in path.rglob("*") if f.is_file()) if path.is_dir() else 1
-    size_bytes = get_folder_size(path) if path.is_dir() else path.stat().st_size
+    try:
+        size_bytes = get_folder_size(path) if path.is_dir() else path.stat().st_size
+    except ValueError as e:
+        raise ValueError(f"Cannot generate NFO: {e}") from e
 
     # Extract info from release name for template (use metadata if available)
     source = _extract_source(release_name)

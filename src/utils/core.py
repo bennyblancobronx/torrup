@@ -21,11 +21,26 @@ def human_size(size: int) -> str:
     return f"{size:.1f} PB"
 
 
-def get_folder_size(path: Path) -> int:
-    """Calculate total size of all files in a directory."""
+def get_folder_size(path: Path, max_files: int = 50000) -> int:
+    """Calculate total size of all files in a directory.
+
+    Args:
+        path: Directory path to calculate size for
+        max_files: Maximum number of files to process (default 50000)
+
+    Returns:
+        Total size in bytes
+
+    Raises:
+        ValueError: If directory contains more than max_files
+    """
     total = 0
+    count = 0
     for f in path.rglob("*"):
         if f.is_file():
+            count += 1
+            if count > max_files:
+                raise ValueError(f"Directory contains more than {max_files} files")
             total += f.stat().st_size
     return total
 
