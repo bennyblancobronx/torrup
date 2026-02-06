@@ -150,12 +150,21 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
         update_queue_status(conn, item_id, "failed", f"Upload error: {sanitize_error_message(e)}")
 
 
-def queue_worker() -> None:
-    """Main worker loop that processes queued items."""
+def queue_worker(shutdown_event: "threading.Event | None" = None) -> None:
+    """Main worker loop that processes queued items.
+
+    Args:
+        shutdown_event: Optional event that signals the worker to stop.
+    """
+    import threading as _threading
+
+    if shutdown_event is None:
+        shutdown_event = _threading.Event()
+
     logger.info("Queue worker started")
     backoff = 2
     max_backoff = 60
-    while True:
+    while not shutdown_event.is_set():
         try:
             with db() as conn:
                 row = conn.execute(
@@ -164,8 +173,9 @@ def queue_worker() -> None:
                 if row:
                     process_queue_item(conn, row)
             backoff = 2  # Reset backoff on success
-            time.sleep(2)
+            shutdown_event.wait(2)
         except Exception as e:
             logger.error(f"Worker loop error: {e}", exc_info=True)
-            time.sleep(backoff)
+            shutdown_event.wait(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff
+    logger.info("Queue worker stopped")

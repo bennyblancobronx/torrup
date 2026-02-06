@@ -16,12 +16,26 @@ services:
     volumes:
       - ./data:/app/data
       - ./output:/app/output
-      - ./templates:/app/templates:ro
       - ${MEDIA_PATH:-/volume/media}:/volume/media:ro
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    mem_limit: 1g
+    cpus: '2.0'
+    stop_grace_period: 60s
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:5001/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

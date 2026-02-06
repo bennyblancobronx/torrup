@@ -1,10 +1,11 @@
 """
-Torrup - Torrent uploader for TorrentLeech
-Simple web UI for creating and uploading torrents to TorrentLeech.
+Torrup - Torrent Upload Tool
+Simple web UI for creating and uploading torrents.
 """
 from __future__ import annotations
 
 import os
+import signal
 import sys
 import threading
 from hmac import compare_digest
@@ -69,13 +70,26 @@ app.register_blueprint(bp)
 init_db()
 logger.info("Database initialized")
 
+# Graceful shutdown event for background workers
+shutdown_event = threading.Event()
+
+
+def _handle_shutdown(signum, frame):
+    """Signal handler that sets shutdown_event for clean worker exit."""
+    logger.info(f"Received signal {signum}, shutting down workers...")
+    shutdown_event.set()
+
+
+signal.signal(signal.SIGTERM, _handle_shutdown)
+signal.signal(signal.SIGINT, _handle_shutdown)
+
 # Start background worker
 if RUN_WORKER:
-    t1 = threading.Thread(target=queue_worker, daemon=True)
+    t1 = threading.Thread(target=queue_worker, args=(shutdown_event,), daemon=True)
     t1.start()
     logger.info("Background queue worker thread started")
-    
-    t2 = threading.Thread(target=auto_scan_worker, daemon=True)
+
+    t2 = threading.Thread(target=auto_scan_worker, args=(shutdown_event,), daemon=True)
     t2.start()
     logger.info("Background auto-scan worker thread started")
 

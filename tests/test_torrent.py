@@ -137,5 +137,5 @@ class TestCreateTorrent:
 
         with pytest.raises(Exception) as exc_info:
             create_torrent(test_dir, "Test-Release", out_dir)
-        assert "mktorrent not installed" in str(exc_info.value)
-        assert "brew install mktorrent" in str(exc_info.value) or "apt install mktorrent" in str(exc_info.value)
+        assert "mktorrent not found" in str(exc_info.value)
+        assert "container may need rebuild" in str(exc_info.value)

@@ -19,11 +19,20 @@ from src.utils import (
 )
 
 
-def auto_scan_worker() -> None:
-    """Periodically scans enabled media roots for new content and queues them if missing on TL."""
+def auto_scan_worker(shutdown_event: "threading.Event | None" = None) -> None:
+    """Periodically scans enabled media roots for new content and queues them if missing on TL.
+
+    Args:
+        shutdown_event: Optional event that signals the worker to stop.
+    """
+    import threading as _threading
+
+    if shutdown_event is None:
+        shutdown_event = _threading.Event()
+
     logger.info("Auto-scan worker started")
 
-    while True:
+    while not shutdown_event.is_set():
         try:
             with db() as conn:
                 enabled = get_setting(conn, "enable_auto_upload") == "1"
@@ -31,11 +40,13 @@ def auto_scan_worker() -> None:
                 excludes = get_excludes(conn)
 
                 if not enabled:
-                    time.sleep(60)
+                    shutdown_event.wait(60)
                     continue
 
                 roots = get_media_roots(conn)
                 for root in roots:
+                    if shutdown_event.is_set():
+                        break
                     if not root["auto_scan"]:
                         continue
 
@@ -43,7 +54,7 @@ def auto_scan_worker() -> None:
                     last_scan = root["last_scan"]
                     if last_scan:
                         # Simple check: has interval passed?
-                        pass # For now we just scan every loop if auto_scan is on
+                        pass  # For now we just scan every loop if auto_scan is on
 
                     logger.info(f"Auto-scanning {root['media_type']} root: {root['path']}")
                     _scan_root(conn, root, excludes)
@@ -55,11 +66,13 @@ def auto_scan_worker() -> None:
                     )
 
             # Wait for next interval
-            time.sleep(interval_mins * 60)
+            shutdown_event.wait(interval_mins * 60)
 
         except Exception as e:
             logger.error(f"Auto-scan worker error: {e}", exc_info=True)
-            time.sleep(300) # Sleep 5 mins on error
+            shutdown_event.wait(300)  # Wait 5 mins on error
+
+    logger.info("Auto-scan worker stopped")
 
 
 def _scan_root(conn, root, excludes):

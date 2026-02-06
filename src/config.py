@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 APP_NAME = "Torrup"
-APP_VERSION = "0.1.2"
+APP_VERSION = "0.1.4"
 
 # Paths
 DB_PATH = Path(os.environ.get("TORRUP_DB_PATH", "./torrup.db"))

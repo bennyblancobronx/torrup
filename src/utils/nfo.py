@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.config import NFO_TEMPLATES
+from src.logger import logger
 from src.utils.core import get_folder_size, human_size, validate_path_for_subprocess
 
 
@@ -54,6 +55,7 @@ def generate_nfo(
                 filtered_lines.append(line)
             mediainfo = "\n".join(filtered_lines)
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError):
+            logger.warning("mediainfo binary not found -- container may need rebuild")
             mediainfo = "  MediaInfo not available"
 
     # Count files and calculate size for books

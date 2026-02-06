@@ -3,6 +3,7 @@
 import importlib
 import os
 import sqlite3
+import threading
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -430,12 +431,10 @@ class TestProcessQueueItem:
 class TestQueueWorker:
     """Tests for queue_worker function."""
 
-    @patch("src.worker.time.sleep")
     @patch("src.worker.process_queue_item")
     def test_queue_worker_processes_queued_item(
         self,
         mock_process,
-        mock_sleep,
         worker_db,
         tmp_path,
     ):
@@ -443,14 +442,12 @@ class TestQueueWorker:
         from src.worker import queue_worker
         from src.utils import now_iso
 
-        # Make sleep raise exception to stop the loop after first iteration
-        call_count = [0]
-        def stop_loop(*args):
-            call_count[0] += 1
-            if call_count[0] >= 2:
-                raise KeyboardInterrupt("Stop test")
+        shutdown = threading.Event()
 
-        mock_sleep.side_effect = stop_loop
+        # Stop after one iteration by setting shutdown after process runs
+        def stop_after_process(*args, **kwargs):
+            shutdown.set()
+        mock_process.side_effect = stop_after_process
 
         with worker_db.db() as conn:
             now = now_iso()
@@ -463,54 +460,39 @@ class TestQueueWorker:
             )
             conn.commit()
 
-        try:
-            queue_worker()
-        except KeyboardInterrupt:
-            pass
+        queue_worker(shutdown)
 
         # Verify process_queue_item was called
         assert mock_process.called
 
-    @patch("src.worker.time.sleep")
     @patch("src.worker.process_queue_item")
-    def test_queue_worker_sleeps_when_no_items(
+    def test_queue_worker_stops_on_shutdown_event(
         self,
         mock_process,
-        mock_sleep,
         worker_db,
     ):
-        """Verify queue worker sleeps when no queued items."""
+        """Verify queue worker exits when shutdown_event is set."""
         from src.worker import queue_worker
 
-        # Make sleep raise exception to stop the loop after first iteration
-        call_count = [0]
-        def stop_loop(*args):
-            call_count[0] += 1
-            if call_count[0] >= 1:
-                raise KeyboardInterrupt("Stop test")
+        shutdown = threading.Event()
+        shutdown.set()  # Pre-set so loop never runs
 
-        mock_sleep.side_effect = stop_loop
+        queue_worker(shutdown)
 
-        try:
-            queue_worker()
-        except KeyboardInterrupt:
-            pass
-
-        # Verify sleep was called but process was not
-        assert mock_sleep.called
+        # Worker should not have processed anything
         assert not mock_process.called
 
-    @patch("src.worker.time.sleep")
     @patch("src.worker.process_queue_item")
     def test_worker_skips_unapproved(
         self,
         mock_process,
-        mock_sleep,
         worker_db,
     ):
         """Verify worker does not process items with approval_status='pending_approval'."""
         from src.worker import queue_worker
         from src.utils import now_iso
+
+        shutdown = threading.Event()
 
         # Insert a queued item that is pending approval
         with worker_db.db() as conn:
@@ -526,19 +508,17 @@ class TestQueueWorker:
             )
             conn.commit()
 
-        # Stop the loop after one iteration
+        # Stop after one iteration
+        original_wait = shutdown.wait
         call_count = [0]
-        def stop_loop(*args):
+        def stop_after_wait(timeout=None):
             call_count[0] += 1
             if call_count[0] >= 1:
-                raise KeyboardInterrupt("Stop test")
+                shutdown.set()
+            return original_wait(0)
+        shutdown.wait = stop_after_wait
 
-        mock_sleep.side_effect = stop_loop
-
-        try:
-            queue_worker()
-        except KeyboardInterrupt:
-            pass
+        queue_worker(shutdown)
 
         # Worker should NOT have processed the unapproved item
         assert not mock_process.called
