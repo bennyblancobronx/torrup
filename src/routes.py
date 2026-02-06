@@ -150,6 +150,7 @@ def queue_page() -> str:
         "queue.html",
         app_name=APP_NAME,
         app_version=APP_VERSION,
+        category_options=CATEGORY_OPTIONS,
     )
 
 
@@ -160,6 +161,8 @@ def history_page() -> str:
         "history.html",
         app_name=APP_NAME,
         app_version=APP_VERSION,
+        category_options=CATEGORY_OPTIONS,
+        media_types=MEDIA_TYPES,
     )
 
 
@@ -170,7 +173,7 @@ def update_settings() -> tuple[Any, int]:
     data = request.json or {}
     with db() as conn:
         # Basic settings
-        for key in ["browse_base", "output_dir", "exclude_dirs", "release_group", "extract_metadata", "extract_thumbnails", "auto_scan_interval", "enable_auto_upload", "test_mode", "qbt_enabled", "qbt_url", "qbt_user", "qbt_pass", "qbt_auto_add", "qbt_tag"]:
+        for key in ["browse_base", "output_dir", "exclude_dirs", "release_group", "extract_metadata", "extract_thumbnails", "auto_scan_interval", "enable_auto_upload", "test_mode", "qbt_enabled", "qbt_url", "qbt_user", "qbt_pass", "qbt_auto_add", "qbt_tag", "qbt_auto_source", "qbt_source_categories", "qbt_category_map"]:
             if key in data:
                 set_setting(conn, key, str(data[key]))
 
