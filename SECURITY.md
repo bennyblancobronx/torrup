@@ -58,6 +58,8 @@ When both variables are set, all routes require authentication. When unset, no a
 
 Torrup includes these security measures:
 
+- **CSRF protection** - All state-changing requests require a valid CSRF token
+- **Rate limiting** - Request rate limits to prevent abuse
 - **Security headers** - X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy
 - **Input validation** - Release names, categories, tags are validated and sanitized
 - **Path traversal prevention** - File browser is restricted to configured media roots

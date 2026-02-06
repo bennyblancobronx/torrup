@@ -4,18 +4,21 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 
 ## Version
 
-0.1.2
+0.1.8
 
 ## Features
 
-- Browse media roots by type (music, movies, TV, books)
+- Music uploads fully working (browse, queue, prepare, upload)
+- Movies, TV, books: browsing and queuing works; metadata lookups (IMDB, TVMaze) not yet wired into uploads
 - Queue + batch uploads with editable release names and tags
 - Duplicate check via tracker search API (supports TorrentLeech)
 - NFO generation using MediaInfo (file paths stripped)
 - .torrent creation via mktorrent with private flag + source tag
 - Metadata extraction via exiftool (optional)
 - Thumbnail extraction via ffmpeg (optional)
-- CLI with queue, upload, and qBT commands (browse, queue, prepare, upload, settings, qbt)
+- Auto-scan worker for automatic library scanning
+- Activity tracking and enforcement (upload health monitoring)
+- CLI with queue, upload, and qBT commands (browse, scan, queue, prepare, upload, settings, activity, qbt)
 - Health check endpoint (/health)
 - Configurable logging
 - qBitTorrent integration (auto-add after upload, optional auto-source monitor)
@@ -30,7 +33,7 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 
 ## Tests
 
-- 206 passing tests
+- 313 passing tests
 - 100% code coverage
 
 ## Prerequisites

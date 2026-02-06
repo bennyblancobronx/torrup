@@ -8,7 +8,8 @@ torrup is a local-first web UI + CLI for creating and uploading torrents. It pro
 
 ## What It Does
 
-- Browse media libraries by type (music, movies, tv, books)
+- Music uploads fully working (browse, queue, prepare, upload)
+- Movies, TV, books: browsing and queuing works; metadata lookups (IMDB, TVMaze) not yet wired into uploads
 - Queue multiple items for batch upload
 - Generate NFO files using MediaInfo
 - Create torrents with mktorrent (private flag, source tag)
@@ -42,7 +43,7 @@ torrup/
 
 ## Status
 
-v0.1.7 - Feature complete:
+v0.1.8 - Feature complete:
 - Web UI for browsing and uploading (5 pages)
 - CLI with 13 commands
 - Queue system with background worker
@@ -50,9 +51,10 @@ v0.1.7 - Feature complete:
 - qBitTorrent integration (auto-seed, auto-source)
 - Directory picker for path selection in settings
 - Light/Dark/System theme setting
+- Activity tracking and enforcement (upload health monitoring)
 - Settings management
 - Security hardening (CSRF, rate limiting, headers)
-- 275 tests passing
+- 313 tests passing
 - Docker deployment ready
 
 ## Roadmap

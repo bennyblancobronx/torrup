@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Header: removed worker status indicator, replaced Settings text with gear icon (right-justified), version number inline after app name, nav hover uses accent color
 - Settings page includes ntfy notification configuration
 
+### Docs
+- Updated techguide.md: added activity tracking, activity/qbt CLI commands, activity enforcement settings, updated routes listing, updated worker/auto-scan/qbt-monitor descriptions, updated CLI architecture diagram, updated queue table columns
+- Updated contracts.md: added full queue/settings/media_roots column listings, added exiftool/ffmpeg/ntfy as external dependencies, added tags to upload fields
+
 ## [0.1.7] - 2026-02-06
 
 ### Changed

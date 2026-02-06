@@ -10,7 +10,7 @@ Complete interface specification for the Torrup (Torrent Upload Tool) web applic
 | **Logo** | Text-based "Torrup" (no graphics) |
 | **Framework** | Flask + Jinja2 templates |
 | **Styling** | Vanilla CSS (Crisp Design Language) |
-| **JavaScript** | Vanilla JS (no framework) |
+| **JavaScript** | Vanilla JS (no framework), per-page script files |
 | **Target** | Docker web app, beginner-friendly |
 | **Design Language** | Crisp |
 
@@ -20,42 +20,40 @@ Complete interface specification for the Torrup (Torrent Upload Tool) web applic
 
 ```
 Torrup
-+-- 1. Dashboard     /              Stats, quick actions, system status
-+-- 2. Browse        /browse        Media library browser
++-- 1. Dashboard     /              Stats, browse library, queue, activity chart
++-- 2. Browse        /browse        Dedicated media library browser
 +-- 3. Queue         /queue         Upload queue management
-+-- 4. History       /history       Upload history and logs
-+-- 5. Settings      /settings      All configuration
++-- 4. History       /history       Upload history and activity log
++-- 5. Settings      /settings      All configuration (gear icon in nav)
 ```
 
 ---
 
 ## Shared Layout
 
-Every page uses the same header and optional footer.
+There is no shared `base.html` template. Each page is a standalone HTML file that repeats the header markup. All pages share the same header structure and include `fonts.css` and `style.css`.
 
 ### Header Bar
 
 ```
 +----------------------------------------------------------------------+
-|  Torrup                 [Dashboard] [Browse] [Queue] [History] [Settings]  |
-|  v0.1.0                                                    [Worker: ON]   |
+|  Torrup                 [Dashboard] [Browse] [Queue] [History] [*]   |
+|  v0.1.X                                                              |
 +----------------------------------------------------------------------+
 ```
+
+`[*]` = Settings gear icon (SVG, not text link)
 
 | Element | Description |
 |---------|-------------|
-| **Logo** | "Torrup" in CrispByYosi Bold (700) |
-| **Version** | text-sm muted below logo |
-| **Nav Links** | 5 main pages, highlight current page |
-| **Worker Status** | Green dot when running, red when stopped |
+| **Logo** | "Torrup" in CrispByYosi Bold (700), links to `/` |
+| **Version** | text-sm muted below logo, prefixed with `v` |
+| **Nav Links** | Dashboard, Browse, Queue, History as text links; Settings as a gear icon SVG |
+| **Active State** | Current page nav item has `is-active` class |
 
-### Footer (Optional)
+### Theme Toggle
 
-```
-+----------------------------------------------------------------------+
-|  Multi-tracker batch uploader  -  Local-first  -  Docker ready        |
-+----------------------------------------------------------------------+
-```
+Each page includes an inline script that reads `localStorage.getItem('theme')` (values: `system`, `light`, `dark`) and sets `data-theme` on the `<html>` element before the page renders.
 
 ---
 

@@ -9,8 +9,8 @@
 
 ### Reporting Issues
 
-- [Bug Reports](https://github.com/bennyblancobronx/tlt/issues/new?template=bug_report.md) - Something broken
-- [Feature Requests](https://github.com/bennyblancobronx/tlt/issues/new?template=feature_request.md) - New ideas
+- [Bug Reports](https://github.com/bennyblancobronx/torrup/issues/new?template=bug_report.md) - Something broken
+- [Feature Requests](https://github.com/bennyblancobronx/torrup/issues/new?template=feature_request.md) - New ideas
 
 ### Security
 
@@ -18,7 +18,7 @@ For security vulnerabilities, see [SECURITY.md](SECURITY.md). Do not open public
 
 ## Before Opening an Issue
 
-1. Check existing [issues](https://github.com/bennyblancobronx/tlt/issues) for duplicates
+1. Check existing [issues](https://github.com/bennyblancobronx/torrup/issues) for duplicates
 2. Include your environment (OS, Python version, Docker if applicable)
 3. Provide steps to reproduce
 4. Include relevant logs or error messages

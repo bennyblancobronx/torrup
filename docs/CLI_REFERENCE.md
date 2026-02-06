@@ -251,6 +251,68 @@ torrup browse movies --json
 
 ---
 
+## Scan Commands
+
+### torrup scan
+
+Scan a media library directory for releases not yet on the tracker, and optionally queue them for upload. Currently supports music only.
+
+```bash
+torrup scan <media_type> <path> [options]
+```
+
+**Arguments:**
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `media_type` | Yes | One of: music, movies, tv, books (music only in current version) |
+| `path` | Yes | Path to the library directory to scan |
+
+**Flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--recursive`, `-r` | Recursive scan |
+| `--dry-run` | Identify missing releases only; do not add to queue |
+
+**Behavior (music):**
+
+1. Iterates over artist directories, then album subdirectories
+2. Extracts metadata from each album
+3. Generates a release name and checks the tracker for duplicates
+4. If not found on the tracker, queues the album for upload (unless `--dry-run`)
+5. Calculates a certainty score; albums below 80% are queued as `pending_approval`
+6. Includes a 1-second delay between checks for rate-limit protection
+
+**Output:**
+
+```
+Scanning 42 artists in /volume/media/music...
+Checking: Artist-Album-2024-FLAC-torrup... MISSING -> Queuing
+Checking: Artist-Album-2023-FLAC-torrup... FOUND (Skipping)
+
+Scan Complete.
+Found on TL: 30
+Missing:     12
+Queued:      12
+```
+
+**Examples:**
+
+```bash
+# Scan music library and queue missing releases
+torrup scan music /volume/media/music
+
+# Dry run -- identify missing releases without queuing
+torrup scan music /volume/media/music --dry-run
+```
+
+**Exit Codes:**
+- 0: Success
+- 1: Error (unsupported media type or scan failure)
+
+---
+
 ## Queue Commands
 
 ### torrup queue add
@@ -275,7 +337,6 @@ torrup queue add <media_type> <path> [options]
 | `--category N` | Per media type | Tracker category ID (e.g. TorrentLeech) |
 | `--tags csv` | None | Comma-separated tags |
 | `--release-name NAME` | Auto-generated | Override release name |
-| `--priority N` | 0 | Queue priority (higher = first) |
 
 **Category Defaults (TorrentLeech example):**
 
@@ -396,7 +457,7 @@ torrup queue update <id> [options]
 | `--category N` | Update category |
 | `--tags csv` | Update tags |
 | `--status STATUS` | Update status |
-| `--priority N` | Update priority |
+| `--approval STATUS` | Set approval status: `approved`, `pending_approval`, or `rejected` |
 
 **Examples:**
 
@@ -707,6 +768,69 @@ torrup uploads show 42 --json
 
 ---
 
+## Activity Commands
+
+### torrup activity
+
+Show TorrentLeech activity health for the current month. Reports upload counts, projected pace, and whether the monthly minimum is at risk.
+
+```bash
+torrup activity
+```
+
+**Flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+**Output Fields:**
+
+| Field | Description |
+|-------|-------------|
+| `uploads` | Successful uploads this month |
+| `queued` | Items currently queued |
+| `projected` | Projected uploads by end of month at current pace |
+| `minimum` | Monthly minimum upload target |
+| `needed` | Remaining uploads needed to hit the minimum |
+| `days_remaining` | Days left in the current month |
+| `enforce` | Whether activity enforcement is enabled |
+| `pace` | 7-day rolling average uploads per day (null if no data) |
+| `critical` | True if projected uploads are below the monthly minimum |
+
+**Output:**
+
+```
+Uploads this month: 14
+Queued:             8
+Projected:          22 / 20
+Needed:             6
+Days remaining:     15
+Enforce:            yes
+Pace (7d avg):      1.4/day
+```
+
+If projected uploads fall below the minimum, a warning is displayed:
+
+```
+WARNING: Projected uploads are below the monthly minimum.
+```
+
+**Examples:**
+
+```bash
+# Show activity health
+torrup activity
+
+# JSON output
+torrup activity --json
+```
+
+**Exit Codes:**
+- 0: Success
+
+---
+
 ## Environment Variables
 
 | Variable | Description |
@@ -773,16 +897,21 @@ torrup queue run
 
 | Command | Status | Notes |
 |---------|--------|-------|
-| `torrup settings get` | Planned | v0.1.0 |
-| `torrup settings set` | Planned | v0.1.0 |
-| `torrup browse` | Planned | v0.1.0 |
-| `torrup queue add` | Planned | v0.1.0 |
-| `torrup queue list` | Planned | v0.1.0 |
-| `torrup queue update` | Planned | v0.1.0 |
-| `torrup queue delete` | Planned | v0.1.0 |
-| `torrup queue run` | Planned | v0.1.0 |
-| `torrup prepare` | Planned | v0.1.0 |
-| `torrup upload` | Planned | v0.1.0 |
-| `torrup check-dup` | Planned | v0.1.0 |
-| `torrup uploads list` | Planned | v0.1.0 |
-| `torrup uploads show` | Planned | v0.1.0 |
+| `torrup settings get` | Implemented | v0.1.1 |
+| `torrup settings set` | Implemented | v0.1.1 |
+| `torrup browse` | Implemented | v0.1.1 |
+| `torrup queue add` | Implemented | v0.1.1 |
+| `torrup queue list` | Implemented | v0.1.1 |
+| `torrup queue update` | Implemented | v0.1.1 |
+| `torrup queue delete` | Implemented | v0.1.1 |
+| `torrup queue run` | Implemented | v0.1.1 |
+| `torrup prepare` | Implemented | v0.1.1 |
+| `torrup upload` | Implemented | v0.1.1 |
+| `torrup check-dup` | Implemented | v0.1.1 |
+| `torrup uploads list` | Implemented | v0.1.1 |
+| `torrup uploads show` | Implemented | v0.1.1 |
+| `torrup scan` | Implemented | v0.1.2 (music only) |
+| `torrup qbt test` | Implemented | v0.1.4 |
+| `torrup qbt add` | Implemented | v0.1.4 |
+| `torrup qbt monitor` | Implemented | v0.1.4 |
+| `torrup activity` | Implemented | v0.1.8 |

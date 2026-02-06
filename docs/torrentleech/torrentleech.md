@@ -729,7 +729,7 @@ TorrentLeech uses a **single key** for all API operations. This is your **Torren
 
 ### Torrup Implementation Status (Upload API)
 
-**As of 2026-02-04**
+**As of 2026-02-06**
 
 | Field/Behavior | Implemented | Notes |
 |----------------|-------------|-------|
@@ -738,12 +738,12 @@ TorrentLeech uses a **single key** for all API operations. This is your **Torren
 | `torrent` | Yes | Required. |
 | `nfo` | Yes | Required by implementation. |
 | `description` | No | Textual NFO not supported in current client. |
-| `imdb` | No | Not sent. |
-| `tvmazeid` | No | Not sent. |
-| `tvmazetype` | No | Not sent. |
+| `imdb` | Yes | Sent when present in metadata (movies/tv only). |
+| `tvmazeid` | Yes | Sent when present in metadata (movies/tv only). |
+| `tvmazetype` | Yes | Sent when present in metadata; auto-detected from path type if tvmazeid set (1=dir/boxset, 2=file/episode). |
 | `animeid` | No | Not sent. |
 | `igdburl` | No | Not sent. |
-| `tags` | Yes | Comma-separated tags supported. |
+| `tags` | Yes | Comma-separated tags, always sent. |
 
 ### Upload Response
 
@@ -777,13 +777,13 @@ curl "https://www.torrentleech.org/api/torrentsearch" \
 
 ### Torrup Implementation Status (Search API)
 
-**As of 2026-02-04**
+**As of 2026-02-06**
 
 | Behavior | Implemented | Notes |
 |----------|-------------|-------|
 | `announcekey` | Yes | Required. |
 | `query` in single quotes | Yes | Always wraps with single quotes. |
-| `exact` | Yes | Hardcoded to `1` (no fuzzy search). |
+| `exact` | Yes | Defaults to `1`; configurable via `exact` parameter in `check_exists()`, but all callers use the default. |
 
 | Response | Meaning |
 |----------|---------|
@@ -813,7 +813,7 @@ curl -X POST \
 
 ### Torrup Implementation Status (Download API)
 
-**As of 2026-02-04**
+**As of 2026-02-06**
 
 Not implemented in Torrup.
 

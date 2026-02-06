@@ -1,6 +1,6 @@
 # Torrup GUI Guide - Implementation
 
-Phased implementation plan and file structure.
+File structure and technical details for the Torrup GUI.
 
 ---
 
@@ -8,9 +8,8 @@ Phased implementation plan and file structure.
 
 ```
 templates/
-+-- base.html           # Shared layout (header, nav, footer)
-+-- index.html          # Dashboard (/)
-+-- browse.html         # Media browser (/browse)
++-- index.html          # Dashboard (/) - stats, browse, queue
++-- browse.html         # Dedicated media browser (/browse)
 +-- queue.html          # Queue management (/queue)
 +-- history.html        # Upload history (/history)
 +-- settings.html       # Settings (/settings)
@@ -26,16 +25,59 @@ static/
 |   +-- CrispByYosi-Medium.woff2
 |   +-- CrispByYosi-Bold.woff2
 +-- js/
-    +-- app.js          # Shared JavaScript (optional, can be inline)
+    +-- dashboard.js    # Dashboard page logic (browse, queue, stats, chart)
+    +-- browse.js       # Browse page logic (file list, selection, add to queue)
+    +-- queue.js        # Queue page logic (filter, edit, delete, retry)
+    +-- history.js      # History page logic (uploads tab, activity tab, details)
+    +-- settings.js     # Settings page logic (save, dir picker, qBT test)
+
+src/
++-- routes.py           # Page routes + /api/browse, /api/browse-dirs, /api/stats, /api/settings
++-- routes_queue.py     # /api/queue, /api/queue/add, /api/queue/update, /api/queue/delete
++-- routes_activity.py  # /api/activity/health, /api/activity/history
++-- utils/
+    +-- activity.py     # Activity health calculation, monthly history, ntfy notifications
+```
+
+Note: There is no shared `base.html` template. Each page is a standalone HTML document that repeats the header/nav markup. Each page includes its own inline `<style>` block for page-specific styles.
+
+---
+
+## Template Pattern
+
+Every template follows this structure:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
+  <title>{{ app_name }} [- Page Name]</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script>/* Theme detection (localStorage -> data-theme) */</script>
+  <style>/* Page-specific styles */</style>
+</head>
+<body>
+  <header class="header">
+    <!-- Brand + nav (repeated per page, is-active on current) -->
+  </header>
+  <main class="container page">
+    <!-- Page content -->
+  </main>
+  <script>/* Inline globals: window.categoryOptions, window.csrfToken */</script>
+  <script src="{{ url_for('static', filename='js/[page].js') }}"></script>
+</body>
+</html>
 ```
 
 ---
 
 ## Font Setup
 
-Copy CrispByYosi font files from `.claude/skills/crisp/assets/fonts/` to `static/fonts/`.
-
-Create `static/css/fonts.css`:
+CrispByYosi font files are in `static/fonts/`. The `static/css/fonts.css` declares all five weights:
 
 ```css
 @font-face {
@@ -81,76 +123,33 @@ Create `static/css/fonts.css`:
 
 ---
 
-## Implementation Phases
+## Route Registration
 
-### Phase 1: Base Layout and Crisp Setup
+Routes are split across three files for file-size compliance:
 
-1. Copy CrispByYosi font files to `static/fonts/`
-2. Create `fonts.css` with @font-face declarations
-3. Create `style.css` with Crisp Design Language CSS variables
-4. Create `base.html` with shared header and navigation
-5. Update existing pages to extend `base.html`
+- `src/routes.py` - Main blueprint (`bp`), page routes, `/api/browse`, `/api/browse-dirs`, `/api/stats`, `/api/settings`, `/api/settings/qbt/test`, `/health`
+- `src/routes_queue.py` - Imports `bp` from routes.py and adds `/api/queue/*` endpoints
+- `src/routes_activity.py` - Imports `bp` from routes.py and adds `/api/activity/*` endpoints
 
-**Files to create/modify:**
-- `static/fonts/` (copy font files)
-- `static/css/fonts.css` (new)
-- `static/css/style.css` (new)
-- `templates/base.html` (new)
-- `templates/index.html` (modify)
-- `templates/settings.html` (modify)
+The queue and activity modules are imported at the bottom of `routes.py` to register their routes on the shared blueprint.
 
 ---
 
-### Phase 2: Dashboard
+## Rate Limiting
 
-6. Convert current index to dashboard with stats
-7. Add `/api/stats` endpoint
-8. Add `/api/system` endpoint
+All POST endpoints and some GET endpoints have rate limits via Flask-Limiter:
 
-**Files to create/modify:**
-- `templates/index.html` (modify)
-- `src/routes.py` (add endpoints)
-
----
-
-### Phase 3: Browse and Queue Pages
-
-9. Create `/browse` page (extract from current index)
-10. Create `/queue` page (extract from current index)
-11. Improve queue editing UX with expandable panel
-
-**Files to create/modify:**
-- `templates/browse.html` (new)
-- `templates/queue.html` (new)
-- `src/routes.py` (add routes)
-
----
-
-### Phase 4: History Page
-
-12. Create `/history` page
-13. Add `/api/history` endpoint
-14. Add activity logging to queue operations
-
-**Files to create/modify:**
-- `templates/history.html` (new)
-- `src/routes.py` (add endpoint)
-- `src/db.py` (add history queries)
-
----
-
-### Phase 5: Polish
-
-15. Add loading states (simple opacity fade, no skeleton loaders)
-16. Add error handling UI (toast notifications)
-17. Add beginner tooltips and help text
-18. Responsive adjustments for mobile
-
-**Crisp Loading States:**
-- Use opacity transitions (0 to 1)
-- No animated skeleton loaders
-- Simple "Loading..." text is acceptable
-- Disabled button states during submission
+| Endpoint | Limit |
+|----------|-------|
+| `POST /api/queue/add` | 10/min |
+| `POST /api/queue/update` | 30/min |
+| `POST /api/queue/delete` | 20/min |
+| `POST /api/settings` | 5/min |
+| `POST /api/settings/qbt/test` | 5/min |
+| `GET /api/browse` | 60/min |
+| `GET /api/browse-dirs` | 60/min |
+| `GET /api/activity/health` | 60/min |
+| `GET /api/activity/history` | 30/min |
 
 ---
 
@@ -158,7 +157,7 @@ Create `static/css/fonts.css`:
 
 - All interactive elements must be keyboard accessible
 - Use semantic HTML (`nav`, `main`, `section`, `button`)
-- Provide `aria-label` for icon-only buttons
+- Provide `aria-label` for icon-only buttons (e.g. Settings gear icon)
 - Maintain color contrast ratio of at least 4.5:1
 - Status indicators must not rely on color alone (add text/icons)
 - Focus states: 2px accent outline with 2px offset
@@ -206,24 +205,30 @@ No IE11 support required.
 
 ### Dashboard
 
-- [ ] Stat cards show correct counts
-- [ ] Quick action buttons link to correct pages
-- [ ] Recent activity shows latest 5 items
-- [ ] System status shows dependency state
-- [ ] Auto-refreshes periodically (optional)
+- [ ] Stat cards show queue count, automation status, last scan
+- [ ] Activity warning banner appears when critical
+- [ ] Monthly bar chart renders with data
+- [ ] Browse library loads default media root
+- [ ] File checkboxes toggle selection
+- [ ] Add to Queue creates items and reloads queue table
+- [ ] Inline queue editing (save/delete) works
+- [ ] Stats auto-refresh every 30s
+- [ ] Activity health auto-refresh every 60s
 
 ### Browse
 
-- [ ] Media type dropdown switches libraries
+- [ ] Media type dropdown switches libraries (only music enabled)
 - [ ] Breadcrumb shows current path
 - [ ] Clicking folder navigates into it
 - [ ] Checkboxes toggle selection
-- [ ] Selected count updates correctly
+- [ ] Select All works
+- [ ] Selected count and size update correctly
 - [ ] Add to Queue creates items and redirects
 
 ### Queue
 
 - [ ] Filter tabs filter correctly
+- [ ] Auto-refresh toggle works
 - [ ] Edit panel opens/closes
 - [ ] Save updates item in database
 - [ ] Delete removes item
@@ -232,17 +237,22 @@ No IE11 support required.
 
 ### History
 
-- [ ] Tab switcher toggles views
-- [ ] Filters narrow results
-- [ ] Clicking row shows details
-- [ ] Pagination works (if implemented)
+- [ ] Tab switcher toggles between Uploads and Activity
+- [ ] Monthly counter shows "This month: X / Y"
+- [ ] Filters narrow results (status, date, media type)
+- [ ] Clicking row shows details panel
+- [ ] Details panel shows TL ID, category, tags, timestamp, path, files
+- [ ] Activity tab shows timestamped log entries
 
 ### Settings
 
-- [ ] All fields pre-populate with current values
-- [ ] Save persists changes
+- [ ] All fields pre-populate with current values from server
+- [ ] Directory picker modal works for output_dir and media root paths
+- [ ] Theme selector changes theme and persists to localStorage
+- [ ] Save persists all changes
+- [ ] qBitTorrent test connection button works
+- [ ] Non-music media types are visually disabled ("coming soon")
 - [ ] Validation prevents invalid input
-- [ ] System status reflects actual state
 
 ---
 
@@ -250,6 +260,7 @@ No IE11 support required.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.3.0 | 2026-02-06 | Updated docs to match implemented code: corrected API endpoints, page descriptions, file structure, settings sections |
 | 0.2.0 | 2026-02-03 | Updated to Crisp Design Language compliance |
 | 0.1.0 | 2026-02-03 | Initial GUI guide |
 

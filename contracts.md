@@ -31,17 +31,28 @@ External integrations, dependencies, and obligations.
 **Required Fields (TL):**
 - `announcekey` - 32-char passkey
 - `category` - Category number (see docs/torrentleech/torrentleech.md)
-- `torrent` - .torrent file
-- `nfo` - NFO file or description text
+- `torrent` - .torrent file (multipart)
+- `nfo` - NFO file (multipart)
 
 **Optional Fields (TL):**
-- `imdb` - IMDB ID in tt1234567 format (movies)
+- `tags` - Comma-separated tags
+- `imdb` - IMDB ID in tt1234567 format (movies/tv)
 - `tvmazeid` - TVMaze show ID (TV)
 - `tvmazetype` - TVMaze type: 1 for boxsets, 2 for episodes (TV)
 
 **Response:**
 - Success: Numeric torrent ID
 - Failure: Error text
+
+### ntfy Push Notifications
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| ntfy | Configurable (e.g. `https://ntfy.sh`) | Activity warning notifications |
+
+**Authentication:** None (public topics) or server-dependent.
+
+**Usage:** Sends HTTP POST to `<ntfy_url>/<ntfy_topic>` with Title and Priority headers when activity drops below minimum. Controlled by `ntfy_enabled`, `ntfy_url`, `ntfy_topic` settings.
 
 ## External Tools
 
@@ -58,6 +69,20 @@ External integrations, dependencies, and obligations.
 - **Install:** `brew install mktorrent` (macOS) or `apt install mktorrent` (Linux)
 - **Usage:** `mktorrent -p -a URL -s TAG -l SIZE -o OUTPUT PATH`
 - **Required:** Yes - torrent creation fails without it
+
+### exiftool
+
+- **Purpose:** Extract embedded metadata from media files (artist, album, title, etc.)
+- **Install:** `brew install exiftool` (macOS) or `apt install libimage-exiftool-perl` (Linux)
+- **Usage:** Called via `extract_metadata()` in src/utils/metadata.py
+- **Required:** No - metadata extraction is optional (controlled by `extract_metadata` setting)
+
+### ffmpeg
+
+- **Purpose:** Extract video thumbnails and album artwork
+- **Install:** `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Linux)
+- **Usage:** Called via `extract_thumbnail()` in src/utils/core.py
+- **Required:** No - thumbnail extraction is optional (controlled by `extract_thumbnails` setting)
 
 ## Environment Variables
 
@@ -77,12 +102,16 @@ External integrations, dependencies, and obligations.
 ### SQLite Database
 
 **Tables:**
-- `settings` - Key-value configuration
-  - Notable keys: `auto_scan_interval`, `enable_auto_upload`
+- `settings` - Key-value configuration (key TEXT PRIMARY KEY, value TEXT)
+  - Notable keys: `output_dir`, `exclude_dirs`, `release_group`, `auto_scan_interval`, `enable_auto_upload`, `extract_metadata`, `extract_thumbnails`, `test_mode`
+  - qBT keys: `qbt_enabled`, `qbt_url`, `qbt_user`, `qbt_pass`, `qbt_auto_add`, `qbt_tag`, `qbt_auto_source`, `qbt_source_categories`, `qbt_category_map`
+  - Activity keys: `tl_min_uploads_per_month`, `tl_min_seed_copies`, `tl_min_seed_days`, `tl_inactivity_warning_weeks`, `tl_absence_notice_weeks`, `tl_enforce_activity`, `tl_last_critical_state`
+  - Notification keys: `ntfy_enabled`, `ntfy_url`, `ntfy_topic`
+  - Template keys: `template_movies`, `template_tv`, `template_music`, `template_books`
 - `media_roots` - Per-media-type paths and defaults
-  - Columns include `auto_scan` (bool), `last_scan` (timestamp)
+  - Columns: `media_type` (PK), `path`, `enabled`, `default_category`, `auto_scan`, `last_scan`
 - `queue` - Upload queue with status tracking
-  - Columns include `imdb`, `tvmazeid`, `tvmazetype`, `certainty_score`, `approval_status`
+  - Columns: `id` (PK), `media_type`, `path`, `release_name`, `category`, `tags`, `imdb`, `tvmazeid`, `tvmazetype`, `status`, `message`, `created_at`, `updated_at`, `torrent_path`, `nfo_path`, `xml_path`, `thumb_path`, `certainty_score`, `approval_status`
 
 **Location:** Configurable via `TORRUP_DB_PATH`, defaults to `./torrup.db`
 

@@ -8,7 +8,8 @@ Wireframes and component specifications for each page.
 
 **Route:** `/`
 **Template:** `index.html`
-**Purpose:** Quick overview and most common actions
+**Script:** `static/js/dashboard.js`
+**Purpose:** Combined view with stats, browse library, inline queue management, and activity chart
 
 ### Wireframe
 
@@ -17,27 +18,42 @@ Wireframes and component specifications for each page.
 | DASHBOARD                                                            |
 +---------------------------------------------------------------------+
 |                                                                      |
-|  +-------------+  +-------------+  +-------------+  +-----------+   |
-|  |   QUEUED    |  |  UPLOADING  |  |   SUCCESS   |  |  FAILED   |   |
-|  |     12      |  |      2      |  |     156     |  |    3      |   |
-|  +-------------+  +-------------+  +-------------+  +-----------+   |
-|                                                                      |
-|  +------------------------------+  +----------------------------+   |
-|  | QUICK ACTIONS                |  | RECENT ACTIVITY            |   |
-|  |                              |  |                            |   |
-|  |  [Browse Music]              |  |  Movie.Name.2024... OK     |   |
-|  |  [Browse Movies]             |  |  Album.Name.FLAC... OK     |   |
-|  |  [Browse TV]                 |  |  Show.S01E01... uploading  |   |
-|  |  [Browse Books]              |  |  Release.Name... failed    |   |
-|  |                              |  |                            |   |
-|  |  [View Queue]                |  |  [View All]                |   |
-|  +------------------------------+  +----------------------------+   |
+|  +------------------------------------------------------------------+
+|  | ACTIVITY WARNING (conditional, red left border)                  |
+|  |  Projected uploads: 4 / 10. Need 6 more in 18 days. Pace: 0.5/d |
+|  +------------------------------------------------------------------+
 |                                                                      |
 |  +------------------------------------------------------------------+
 |  | SYSTEM STATUS                                                    |
-|  |                                                                  |
-|  |  Worker: Running    |  mediainfo: OK  |  mktorrent: OK          |
-|  |  Database: OK       |  API Key: Configured                      |
+|  |  +-----------+  +-------------+  +-----------------+             |
+|  |  | Queue     |  | Automation  |  | Last Music Scan |             |
+|  |  | 12        |  | On          |  | 2026-02-03      |             |
+|  |  | 5 pending |  | Interval:60m|  | 14:32:15        |             |
+|  |  +-----------+  +-------------+  +-----------------+             |
+|  +------------------------------------------------------------------+
+|                                                                      |
+|  +------------------------------------------------------------------+
+|  | MONTHLY UPLOADS (last 6 months)     (bar chart)                  |
+|  |  [===]  [====]  [======]  [========]  [===]  [==]                |
+|  |   08     09      10        11          12     01                 |
+|  +------------------------------------------------------------------+
+|                                                                      |
+|  +------------------------------------------------------------------+
+|  | BROWSE LIBRARY                                                   |
+|  |  Media type: [Music v]  [Refresh]                                |
+|  |  [root] [.. (up)] path/to/current                                |
+|  |  +--------------------------------------------------------------+|
+|  |  | [x] folder-name-1                              1.2 GB        ||
+|  |  | [ ] folder-name-2                              450 MB        ||
+|  |  | [ ] file.flac                                  32 MB         ||
+|  |  +--------------------------------------------------------------+|
+|  |  [Add Selected to Queue]  0 selected                             |
+|  +------------------------------------------------------------------+
+|                                                                      |
+|  +------------------------------------------------------------------+
+|  | QUEUE                                            [Reload]        |
+|  |  ID | Type  | Release Name    | Cat   | Tags | Status | Msg | Act|
+|  |  45 | music | [editable     ] | [v  ] | [  ] | queued |     |S|D||
 |  +------------------------------------------------------------------+
 +---------------------------------------------------------------------+
 ```
@@ -46,18 +62,21 @@ Wireframes and component specifications for each page.
 
 | Component | Crisp Class | Description |
 |-----------|-------------|-------------|
-| **Stat Cards** | `.card` | 4 cards with counts: Queued, Uploading, Success, Failed |
-| **Quick Actions** | `.btn-secondary` | Buttons linking to browse page with type preselected |
-| **Recent Activity** | `.table` | Last 5 queue items with status badges |
-| **System Status** | `.card` | Worker state, dependency checks, API key status |
+| **Activity Warning** | `.card` with red left border | Conditional banner when projected uploads < minimum |
+| **Stat Cards** | `.card .stat-card` | 3 cards: Queue count, Automation on/off, Last Music Scan |
+| **Monthly Chart** | `.card` | Bar chart from `/api/activity/history`, hidden if no data |
+| **Browse Library** | `.card` | Media type dropdown, breadcrumb nav, file list with checkboxes |
+| **Queue Table** | `.card .table` | Inline editable queue with save/delete per row |
 
-### Data Requirements
+### Data Sources
 
 | Data | Source |
 |------|--------|
-| Queue counts | `GET /api/stats` |
-| Recent items | `GET /api/queue?limit=5` |
-| System status | `GET /api/system` |
+| System stats | `GET /api/stats` (auto-refreshes every 30s) |
+| Activity health | `GET /api/activity/health` (auto-refreshes every 60s) |
+| Monthly chart | `GET /api/activity/history?months=6` |
+| Directory listing | `GET /api/browse?media_type=X&path=Y` |
+| Queue list | `GET /api/queue` |
 
 ---
 
@@ -65,7 +84,8 @@ Wireframes and component specifications for each page.
 
 **Route:** `/browse`
 **Template:** `browse.html`
-**Purpose:** Navigate media library and select items to queue
+**Script:** `static/js/browse.js`
+**Purpose:** Dedicated media library browser with select-all and size tracking
 
 ### Wireframe
 
@@ -76,24 +96,19 @@ Wireframes and component specifications for each page.
 |                                                                      |
 |  Media Type: [Music v]    [Refresh]                                 |
 |                                                                      |
-|  Path: /music  >  Artist Name  >  Album Name                        |
-|        [Home]     [Up One Level]                                    |
+|  [Home]  [Up One Level]  path/to/current                            |
 |                                                                      |
 |  +------------------------------------------------------------------+
-|  | [ ]  NAME                                              SIZE      |
+|  | [x]  NAME                                              SIZE      |
 |  +------------------------------------------------------------------+
-|  | [ ]  [D] Subfolder A                                   --        |
+|  | [x]  [D] Subfolder A                                   --        |
 |  | [ ]  [D] Subfolder B                                   --        |
 |  | [x]  [D] Album.Name.2024.FLAC                          1.2 GB    |
-|  | [x]  [D] Another.Album.2023.MP3                        450 MB    |
-|  | [ ]  [F] cover.jpg                                     2.1 MB    |
 |  +------------------------------------------------------------------+
 |                                                                      |
-|  Selected: 2 items (1.65 GB)                                        |
+|  Selected: 2 items  |  1.65 GB                                      |
 |                                                                      |
 |  [Add to Queue]                                                     |
-|                                                                      |
-|  Tip: Select folders to upload. Click folder name to enter.        |
 +---------------------------------------------------------------------+
 ```
 
@@ -101,13 +116,13 @@ Wireframes and component specifications for each page.
 
 | Component | Crisp Class | Description |
 |-----------|-------------|-------------|
-| **Media Type Dropdown** | `.input` (select) | music, movies, tv, books |
-| **Breadcrumb** | `.text-sm` | Current path with clickable segments |
+| **Media Type Dropdown** | `.input` (select) | music, movies, tv, books (non-music disabled as "coming soon") |
+| **Breadcrumb** | `.path-nav .breadcrumb` | Current path with clickable segments |
 | **Navigation Buttons** | `.btn-ghost` | Home (root) and Up (parent directory) |
-| **File List** | `.table` | Checkbox, type icon, name (clickable), size |
+| **Select All** | checkbox | Toggle all items in current directory |
+| **File List** | `.table` | Checkbox, type icon, name (clickable for dirs), size |
 | **Selection Summary** | `.text-secondary` | Count and total size of selected items |
-| **Add to Queue** | `.btn-primary` | Primary action button |
-| **Tips** | `.text-muted` | Help text for beginners |
+| **Add to Queue** | `.btn-primary` | Primary action button, redirects to queue page |
 
 ### Interactions
 
@@ -115,16 +130,18 @@ Wireframes and component specifications for each page.
 |--------|--------|
 | Click folder name | Navigate into folder |
 | Click checkbox | Toggle selection |
+| Click Select All | Toggle all items |
 | Change media type | Reset to root of that media type |
 | Click Home | Return to media root |
 | Click Up | Go to parent directory |
-| Click Add to Queue | Add selected items, redirect to Queue page |
+| Click Add to Queue | POST items, redirect to Queue page |
 
-### Data Requirements
+### Data Sources
 
 | Data | Source |
 |------|--------|
 | Directory listing | `GET /api/browse?media_type=X&path=Y` |
+| Add items | `POST /api/queue/add` |
 
 ---
 
@@ -132,7 +149,8 @@ Wireframes and component specifications for each page.
 
 **Route:** `/queue`
 **Template:** `queue.html`
-**Purpose:** Manage pending and active uploads
+**Script:** `static/js/queue.js`
+**Purpose:** Manage pending and active uploads with filtering and inline editing
 
 ### Wireframe
 
@@ -141,7 +159,7 @@ Wireframes and component specifications for each page.
 | UPLOAD QUEUE                                                         |
 +---------------------------------------------------------------------+
 |                                                                      |
-|  Filter: [All v]  [Queued] [Uploading] [Failed]    [Refresh]        |
+|  [All] [Queued] [Uploading] [Failed]    [x] Auto-refresh  [Refresh] |
 |                                                                      |
 |  +------------------------------------------------------------------+
 |  | ID  | TYPE   | RELEASE NAME           | CAT  | STATUS | ACT     |
@@ -158,11 +176,11 @@ Wireframes and component specifications for each page.
 |  |  Release Name: [Movie.Name.2024.1080p.BluRay.x264-GROUP        ]|
 |  |  Category:     [Movies :: BlurayRip v]                          |
 |  |  Tags:         [1080p, BluRay, x264                            ]|
+|  |  IMDB:         [tt1234567                                      ]|
+|  |  TVMaze ID:    [12345                                          ]|
 |  |                                                                  |
 |  |  [Save Changes]  [Cancel]                                       |
 |  +------------------------------------------------------------------+
-|                                                                      |
-|  Tip: Edit release name, category, and tags before upload.         |
 +---------------------------------------------------------------------+
 ```
 
@@ -170,10 +188,10 @@ Wireframes and component specifications for each page.
 
 | Component | Crisp Class | Description |
 |-----------|-------------|-------------|
-| **Filter Tabs** | `.btn-ghost` | All, Queued, Uploading, Failed quick filters |
-| **Filter Dropdown** | `.input` (select) | Full status filter |
+| **Filter Tabs** | `.filter-tabs .tab` | All, Queued, Uploading, Failed quick filters |
+| **Auto-refresh** | `.auto-refresh` checkbox | Toggle periodic queue reload |
 | **Queue Table** | `.table` | ID, type, release name, category, status, actions |
-| **Action Buttons** | `.btn-ghost` `.btn-sm` | Edit, Delete, Retry, View |
+| **Action Buttons** | `.btn-ghost .btn-sm` | Edit, Delete, Retry, View |
 | **Edit Panel** | `.card` | Expandable form for editing item details |
 
 ### Status Actions
@@ -187,16 +205,19 @@ Wireframes and component specifications for each page.
 | `failed` | Retry, Edit, Delete |
 | `duplicate` | View, Delete |
 
-### Action Icons
+### Editable Fields
 
-| Icon | Meaning |
-|------|---------|
-| E | Edit |
-| X | Delete |
-| R | Retry |
-| V | View |
+| Field | Validation |
+|-------|------------|
+| `release_name` | No path traversal (`..`, `/`, `\`) |
+| `category` | Must be valid int for the media type |
+| `tags` | Alphanumeric, commas, spaces, hyphens only |
+| `status` | Must be one of: queued, preparing, uploading, success, failed, duplicate |
+| `imdb` | Format: `tt` followed by 7-9 digits |
+| `tvmazeid` | Numeric only |
+| `tvmazetype` | `1` or `2` only |
 
-### Data Requirements
+### Data Sources
 
 | Data | Source |
 |------|--------|
@@ -210,40 +231,41 @@ Wireframes and component specifications for each page.
 
 **Route:** `/history`
 **Template:** `history.html`
-**Purpose:** View past uploads and activity logs
+**Script:** `static/js/history.js`
+**Purpose:** View past uploads and activity log derived from queue data
 
 ### Wireframe
 
 ```
 +---------------------------------------------------------------------+
-| UPLOAD HISTORY                                                       |
+| UPLOAD HISTORY                           This month: 8 / 10         |
 +---------------------------------------------------------------------+
 |                                                                      |
 |  Tabs: [Uploads] [Activity]                                         |
 |                                                                      |
-|  Filter: [All v]  Date: [Last 7 days v]  Type: [All v]              |
+|  Filter: [All v]  Date: [Last 7 days v]  Type: [All v]  [Refresh]  |
 |                                                                      |
 |  +------------------------------------------------------------------+
-|  | DATE       | RELEASE NAME               | STATUS | TRACKER ID    |
+|  | DATE       | RELEASE NAME               | STATUS | TL ID         |
 |  +------------------------------------------------------------------+
 |  | 2026-02-03 | Movie.Name.2024.1080p...   | OK     | #1234567     |
 |  | 2026-02-03 | Album.FLAC.2024...         | OK     | #1234566     |
 |  | 2026-02-02 | Show.S01E01...             | DUP    | --           |
-|  | 2026-02-02 | Book.Title...              | OK     | #1234565     |
 |  +------------------------------------------------------------------+
 |                                                                      |
 |  +------------------------------------------------------------------+
 |  | DETAILS: Movie.Name.2024.1080p.BluRay.x264-GROUP                 |
 |  |                                                                  |
-|  |  Tracker ID:        #1234567 (e.g. TorrentLeech)                 |
+|  |  TL ID:            #1234567                                      |
 |  |  Category:         Movies :: BlurayRip                          |
 |  |  Tags:             1080p, BluRay                                |
-|  |  Uploaded:         2026-02-03 14:32:15                          |
+|  |  Timestamp:        2026-02-03 14:32:15                          |
+|  |  Path:             /media/movies/Movie.Name.2024                |
 |  |                                                                  |
 |  |  Files Generated:                                               |
-|  |    OK  Movie.Name.2024.1080p.BluRay.x264-GROUP.torrent         |
-|  |    OK  Movie.Name.2024.1080p.BluRay.x264-GROUP.nfo             |
-|  |    OK  Movie.Name.2024.1080p.BluRay.x264-GROUP.xml             |
+|  |    OK  Movie.Name.2024.torrent                                  |
+|  |    OK  Movie.Name.2024.nfo                                      |
+|  |    OK  Movie.Name.2024.xml                                      |
 |  +------------------------------------------------------------------+
 +---------------------------------------------------------------------+
 ```
@@ -252,24 +274,28 @@ Wireframes and component specifications for each page.
 
 | Tab | Content |
 |-----|---------|
-| **Uploads** | Completed uploads with tracker IDs |
-| **Activity** | Timestamped log of all actions (add, edit, delete, upload) |
+| **Uploads** | Queue items filtered to success/failed/duplicate statuses, with details panel |
+| **Activity** | Timestamped log derived from the same queue data (status as action type) |
 
 ### Components
 
 | Component | Crisp Class | Description |
 |-----------|-------------|-------------|
-| **Tab Switcher** | `.btn-ghost` | Toggle between Uploads and Activity views |
-| **Filters** | `.input` (select) | Status, date range, media type |
-| **History Table** | `.table` | Date, release name, status, Tracker ID |
-| **Details Panel** | `.card` | Click row to show full details |
+| **Monthly Counter** | `.text-muted` | "This month: X / Y" from activity health API |
+| **Tab Switcher** | `.tab` | Toggle between Uploads and Activity views |
+| **Filters** | `.input` (select) | Status, date range (7/30/90 days or all), media type |
+| **History Table** | `.table` | Date, release name, status badge, TL ID |
+| **Details Panel** | `.details-panel` | Click row to show: TL ID, category, tags, timestamp, path, generated files |
+| **Activity Log** | `.activity-item` | Timestamp, action (status), message per entry |
 
-### Data Requirements
+### Data Sources
 
-| Data | Source |
-|------|--------|
-| Upload history | `GET /api/history` |
-| Activity log | `GET /api/activity` |
+| Data | Source | Notes |
+|------|--------|-------|
+| Upload history | `GET /api/queue` | Client-side filtered to success/failed/duplicate |
+| Monthly counter | `GET /api/activity/health` | Shows uploads vs minimum for current month |
+
+Note: There is no dedicated `/api/history` or `/api/activity` endpoint. The history page fetches all queue items via `GET /api/queue` and filters them client-side by status. The activity tab is also derived from the same queue data.
 
 ---
 
@@ -277,6 +303,7 @@ Wireframes and component specifications for each page.
 
 **Route:** `/settings`
 **Template:** `settings.html`
+**Script:** `static/js/settings.js`
 **Purpose:** Configure all application settings
 
 ### Wireframe
@@ -288,25 +315,44 @@ Wireframes and component specifications for each page.
 |                                                                      |
 |  +------------------------------------------------------------------+
 |  | GENERAL                                                          |
-|  |                                                                  |
-|  |  Output Directory:    [/app/output                              ]|
-|  |  Excluded Folders:    [torrents,downloads,tmp,trash             ]|
+|  |  Output Dir:        [/app/output              ] [Browse]         |
+|  |  Release Group:     [torrup                    ]                 |
+|  |  Exclude Folders:   [torrents,downloads,tmp    ]                 |
+|  |  Theme:             [System Default v]                           |
 |  +------------------------------------------------------------------+
 |                                                                      |
 |  +------------------------------------------------------------------+
-|  | MEDIA LIBRARIES                                                  |
-|  |                                                                  |
-|  |  TYPE      | ENABLED | PATH                    | CATEGORY       |
-|  |  ----------|---------|-------------------------|----------------|
-|  |  music     | [x]     | [/media/music          ]| [Audio v]      |
-|  |  movies    | [x]     | [/media/movies         ]| [BluRay v]     |
-|  |  tv        | [x]     | [/media/tv             ]| [Epis. v]      |
-|  |  books     | [ ]     | [/media/books          ]| [EBooks v]     |
+|  | AUTOMATION (Beta)                                                |
+|  |  [x] Test Mode (Dry Run)                                        |
+|  |  [x] Enable Auto-Scan + Upload                                  |
+|  |  Scan Interval (minutes): [60]                                   |
+|  +------------------------------------------------------------------+
+|                                                                      |
+|  +------------------------------------------------------------------+
+|  | MEDIA ROOTS + DEFAULTS                                           |
+|  |  TYPE   | ENABLED | AUTO SCAN | PATH            | CATEGORY      |
+|  |  music  | [x]     | [x]       | [/media/music  ]| [Audio v]     |
+|  |  movies | [ ]     | [ ]       | [/media/movies ] | (coming soon) |
+|  |  tv     | [ ]     | [ ]       | [/media/tv     ] | (coming soon) |
+|  |  books  | [ ]     | [ ]       | [/media/books  ] | (coming soon) |
+|  +------------------------------------------------------------------+
+|                                                                      |
+|  +------------------------------------------------------------------+
+|  | METADATA EXTRACTION                                              |
+|  |  [x] Extract Metadata (exiftool)                                |
+|  |  [x] Extract Thumbnails (ffmpeg)                                |
+|  +------------------------------------------------------------------+
+|                                                                      |
+|  +------------------------------------------------------------------+
+|  | QBITTORRENT INTEGRATION                                         |
+|  |  [x] Enable qBitTorrent    [x] Auto-Add to qBT    qBT Tag: []  |
+|  |  [x] Auto-Source from qBT  Source Categories: []  Category Map:[]|
+|  |  qBT URL: []    Username: []    Password: [****]                 |
+|  |  [Test Connection]                                               |
 |  +------------------------------------------------------------------+
 |                                                                      |
 |  +------------------------------------------------------------------+
 |  | NAMING TEMPLATES                                                 |
-|  |                                                                  |
 |  |  music:     [Artist.Album.Source.Codec-Group                    ]|
 |  |  movies:    [Name.Year.Resolution.Source.Codec-Group            ]|
 |  |  tv:        [Name.S##E##.Resolution.Source.Codec-Group          ]|
@@ -314,16 +360,20 @@ Wireframes and component specifications for each page.
 |  +------------------------------------------------------------------+
 |                                                                      |
 |  +------------------------------------------------------------------+
-|  | SYSTEM                                                           |
-|  |                                                                  |
-|  |  Worker Status:   Running [Stop Worker]                         |
-|  |  API Key:         Configured (via TL_ANNOUNCE_KEY env)          |
-|  |  Dependencies:    mediainfo OK   mktorrent OK                   |
-|  |  Database:        /app/torrup.db (156 KB)                       |
+|  | TORRENTLEECH PREFERENCES                                        |
+|  |  Min Uploads/Month: [10]  Min Seed Copies: [10]  Min Seed Days: [7]|
+|  |  Inactivity Warning (weeks): [3]  Absence Notice (weeks): [4]  |
+|  |  [x] Enforce Activity Minimums                                  |
 |  +------------------------------------------------------------------+
 |                                                                      |
-|  [Save All Settings]                                                |
+|  +------------------------------------------------------------------+
+|  | PUSH NOTIFICATIONS (ntfy)                                       |
+|  |  [x] Enable ntfy Notifications                                  |
+|  |  ntfy Server URL: [https://ntfy.sh]                             |
+|  |  ntfy Topic:      [torrup-alerts]                               |
+|  +------------------------------------------------------------------+
 |                                                                      |
+|  [Save Settings]                                                    |
 +---------------------------------------------------------------------+
 ```
 
@@ -331,30 +381,37 @@ Wireframes and component specifications for each page.
 
 | Section | Fields |
 |---------|--------|
-| **General** | output_dir, exclude_dirs |
-| **Media Libraries** | Per-type: enabled (checkbox), path, default_category |
+| **General** | output_dir (with browse picker), release_group, exclude_dirs, theme |
+| **Automation (Beta)** | test_mode, enable_auto_upload, auto_scan_interval |
+| **Media Roots + Defaults** | Per-type: enabled, auto_scan, path (with browse picker), default_category |
+| **Metadata Extraction** | extract_metadata, extract_thumbnails |
+| **qBitTorrent Integration** | qbt_enabled, qbt_auto_add, qbt_tag, qbt_auto_source, qbt_source_categories, qbt_category_map, qbt_url, qbt_user, qbt_pass, test connection button |
 | **Naming Templates** | Per-type: template pattern string |
-| **System** | Worker control, API key status, dependencies, database info |
+| **TorrentLeech Preferences** | tl_min_uploads_per_month, tl_min_seed_copies, tl_min_seed_days, tl_inactivity_warning_weeks, tl_absence_notice_weeks, tl_enforce_activity |
+| **Push Notifications (ntfy)** | ntfy_enabled, ntfy_url, ntfy_topic |
 
 ### Components
 
 | Component | Crisp Class | Description |
 |-----------|-------------|-------------|
-| **Section Cards** | `.card` | Grouped settings |
-| **Section Titles** | `h3` (20px, weight 500) | Card headers |
-| **Text Inputs** | `.input` | Path, template fields |
-| **Dropdowns** | `.input` (select) | Category selectors |
-| **Checkboxes** | `.checkbox` | Enable/disable toggles |
-| **Save Button** | `.btn-primary` | Save all settings |
-| **Stop/Start** | `.btn-secondary` | Worker control |
+| **Section Cards** | `.card .mb-6` | Grouped settings with section titles |
+| **Section Titles** | `h2.section-title` | Card headers |
+| **Text Inputs** | `.input` | Path, template, and value fields |
+| **Dropdowns** | `.input` (select) | Category selectors, theme picker |
+| **Checkboxes** | `.checkbox-field` | Enable/disable toggles |
+| **Path Inputs** | `.path-input-group` | Input + Browse button for directory picking |
+| **Directory Picker** | `.modal` | Modal dialog for browsing filesystem directories |
+| **Save Button** | `.btn-primary .btn-md` | Save all settings |
+| **Test Connection** | `.btn-secondary .btn-sm` | Test qBitTorrent connectivity |
 
-### Data Requirements
+### Data Sources
 
 | Data | Source |
 |------|--------|
-| Current settings | Template variables from Flask |
+| Current settings | Template variables from Flask (rendered server-side) |
 | Save settings | `POST /api/settings` |
-| System status | `GET /api/system` |
+| Browse directories | `GET /api/browse-dirs?path=X` |
+| Test qBT connection | `POST /api/settings/qbt/test` |
 
 ---
 
@@ -362,4 +419,4 @@ Wireframes and component specifications for each page.
 
 - [Overview](overview.md) - Design system and shared layout
 - [API](api.md) - API endpoints and responses
-- [Implementation](implementation.md) - Phases and file structure
+- [Implementation](implementation.md) - File structure and build info
