@@ -116,7 +116,24 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
     update_queue_status(conn, item_id, "uploading", "Uploading to TorrentLeech")
 
     try:
-        result = upload_torrent(Path(torrent_path), Path(nfo_path), category, tags)
+        # Extract metadata for API
+        imdb = metadata.get("imdb")
+        tvmazeid = metadata.get("tvmazeid")
+        tvmazetype = metadata.get("tvmazetype")
+        
+        # Auto-detect tvmazetype if not set: 1 for boxsets (if path is dir), 2 for episodes
+        if tvmazeid and not tvmazetype:
+            tvmazetype = 1 if path.is_dir() else 2
+
+        result = upload_torrent(
+            Path(torrent_path), 
+            Path(nfo_path), 
+            category, 
+            tags,
+            imdb=imdb,
+            tvmazeid=tvmazeid,
+            tvmazetype=tvmazetype
+        )
         if result.get("success"):
             logger.info(f"Item {item_id}: Upload successful - torrent_id={result['torrent_id']}")
             update_queue_status(conn, item_id, "success", f"Uploaded: {result['torrent_id']}")

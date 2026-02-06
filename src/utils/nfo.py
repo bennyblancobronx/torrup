@@ -26,10 +26,13 @@ def generate_nfo(
     # Get mediainfo for audio/video files
     media_extensions = {".flac", ".mp3", ".m4a", ".mkv", ".mp4", ".avi", ".m4v"}
     media_file = None
-    for f in path.rglob("*"):
-        if f.suffix.lower() in media_extensions:
-            media_file = f
-            break
+    if path.is_file() and path.suffix.lower() in media_extensions:
+        media_file = path
+    else:
+        for f in path.rglob("*"):
+            if f.suffix.lower() in media_extensions:
+                media_file = f
+                break
 
     mediainfo = ""
     if media_file and validate_path_for_subprocess(media_file):

@@ -80,3 +80,13 @@ CLAUDE.md
 **/.claude-flow/
 **/.mcp.json
 **/CLAUDE.md
+.claude/settings.json
+**/.claude/settings.json
+.claude/settings.local.json
+**/.claude/settings.local.json
+.claude/helpers/
+**/.claude/helpers/
+.claude/agents/
+**/.claude/agents/
+.claude/commands/
+**/.claude/commands/

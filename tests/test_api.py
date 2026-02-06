@@ -62,6 +62,33 @@ class TestCheckExists:
 
     @patch("src.api.ANNOUNCE_KEY", "test-key-123")
     @patch("src.api.httpx.post")
+    def test_check_exists_handles_quotes(self, mock_post):
+        """Verify check_exists handles quoted "1" or "0"."""
+        from src.api import check_exists
+
+        mock_response = MagicMock()
+        mock_response.text = '"1"'
+        mock_post.return_value = mock_response
+
+        assert check_exists("Quoted.Release") is True
+
+    @patch("src.api.ANNOUNCE_KEY", "test-key-123")
+    @patch("src.api.httpx.post")
+    def test_check_exists_fuzzy(self, mock_post):
+        """Verify check_exists sends exact=0 for fuzzy search."""
+        from src.api import check_exists
+
+        mock_response = MagicMock()
+        mock_response.text = "0"
+        mock_post.return_value = mock_response
+
+        check_exists("Fuzzy.Release", exact=False)
+
+        call_kwargs = mock_post.call_args
+        assert call_kwargs[1]["data"]["exact"] == "0"
+
+    @patch("src.api.ANNOUNCE_KEY", "test-key-123")
+    @patch("src.api.httpx.post")
     def test_check_exists_sends_correct_data(self, mock_post):
         """Verify check_exists sends correct search parameters."""
         from src.api import check_exists

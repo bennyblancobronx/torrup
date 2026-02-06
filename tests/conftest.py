@@ -1,7 +1,6 @@
 """Pytest fixtures for Torrup tests."""
 
 import importlib
-import os
 
 import pytest
 
@@ -42,6 +41,24 @@ def media_dir(tmp_path):
     (album_dir / "02-track.flac").write_bytes(b"\x00" * 1024)
 
     return tmp_path / "media"
+
+
+@pytest.fixture()
+def music_root(client, tmp_path):
+    """Configure the music media root to a temp directory and return it."""
+    music_dir = tmp_path / "media" / "music"
+    music_dir.mkdir(parents=True, exist_ok=True)
+
+    import src.db as db_module
+
+    with db_module.db() as conn:
+        conn.execute(
+            "UPDATE media_roots SET path = ?, enabled = 1 WHERE media_type = 'music'",
+            (str(music_dir),),
+        )
+        conn.commit()
+
+    return music_dir
 
 
 @pytest.fixture()

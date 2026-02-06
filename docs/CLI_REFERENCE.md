@@ -1,6 +1,6 @@
 # Torrup CLI Reference
 
-Complete command-line interface documentation for Torrup (Torrent uploader for TorrentLeech).
+Complete command-line interface documentation for Torrup (Torrent Upload Tool).
 
 ## Design Principles
 
@@ -30,7 +30,7 @@ These options work with all commands:
 | 1 | `EXIT_ERROR` | General error |
 | 2 | `EXIT_INVALID_ARGS` | Invalid arguments or flags |
 | 3 | `EXIT_NOT_FOUND` | Resource not found (item, file, setting) |
-| 4 | `EXIT_DUPLICATE` | Duplicate detected on TorrentLeech |
+| 4 | `EXIT_DUPLICATE` | Duplicate detected on tracker |
 | 5 | `EXIT_API_ERROR` | API or network error |
 | 6 | `EXIT_MISSING_DEP` | Missing dependency (mediainfo/mktorrent) |
 
@@ -204,12 +204,12 @@ torrup queue add <media_type> <path> [options]
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--category N` | Per media type | TorrentLeech category ID |
+| `--category N` | Per media type | Tracker category ID (e.g. TorrentLeech) |
 | `--tags csv` | None | Comma-separated tags |
 | `--release-name NAME` | Auto-generated | Override release name |
 | `--priority N` | 0 | Queue priority (higher = first) |
 
-**Category Defaults:**
+**Category Defaults (TorrentLeech example):**
 
 | Media Type | Category ID | Label |
 |------------|-------------|-------|
@@ -267,7 +267,7 @@ torrup queue list [options]
 |--------|-------------|
 | `queued` | Waiting to be processed |
 | `preparing` | Generating NFO/torrent |
-| `uploading` | Uploading to TorrentLeech |
+| `uploading` | Uploading to tracker (e.g. TorrentLeech) |
 | `success` | Upload completed |
 | `failed` | Upload failed |
 | `duplicate` | Duplicate detected |
@@ -475,7 +475,7 @@ torrup prepare 42 --output-dir /tmp/test
 
 ### torrup upload
 
-Upload a prepared queue item to TorrentLeech.
+Upload a prepared queue item to tracker (e.g. TorrentLeech).
 
 ```bash
 torrup upload <id> [options]
@@ -517,7 +517,7 @@ torrup upload 42 --skip-dup-check
 
 ### torrup check-dup
 
-Check if release exists on TorrentLeech.
+Check if release exists on tracker (e.g. TorrentLeech).
 
 ```bash
 torrup check-dup <release_name>
@@ -611,7 +611,7 @@ torrup uploads show <id>
 | Field | Description |
 |-------|-------------|
 | `id` | Upload ID |
-| `torrent_id` | TorrentLeech torrent ID |
+| `torrent_id` | Tracker-specific torrent ID (e.g. TorrentLeech ID) |
 | `release_name` | Release name |
 | `media_type` | Media type |
 | `category` | Category ID |
@@ -643,7 +643,7 @@ torrup uploads show 42 --json
 
 | Variable | Description |
 |----------|-------------|
-| `TL_ANNOUNCE_KEY` | TorrentLeech announce/passkey (required) |
+| `TL_ANNOUNCE_KEY` | Tracker announce/passkey (e.g. TorrentLeech, required) |
 | `TORRUP_DB_PATH` | Database path (default: ./torrup.db) |
 | `TORRUP_OUTPUT_DIR` | Output directory override |
 | `TORRUP_CONFIG` | Config file path |

@@ -16,6 +16,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./output:/app/output
+      - ./templates:/app/templates:ro
       - ${MEDIA_PATH:-/volume/media}:/volume/media:ro
     restart: unless-stopped
     healthcheck:

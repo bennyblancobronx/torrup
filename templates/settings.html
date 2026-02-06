@@ -104,12 +104,34 @@
     </div>
 
     <div class="panel">
+      <h2>Automation (Beta)</h2>
+      <div class="row">
+        <div class="col">
+          <div class="field">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="enable_auto_upload" style="width: auto;" {% if settings.get('enable_auto_upload', '0') == '1' %}checked{% endif %} />
+              Enable Auto-Scan + Upload
+            </label>
+            <div class="muted">Automatically scan roots and queue items missing from TorrentLeech.</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label>Scan Interval (minutes)</label>
+            <input type="number" id="auto_scan_interval" value="{{ settings.get('auto_scan_interval', '60') }}" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2>Media Roots + Defaults</h2>
       <table id="media-roots">
         <thead>
           <tr>
             <th>Media Type</th>
             <th>Enabled</th>
+            <th>Auto Scan</th>
             <th>Path</th>
             <th>Default Category</th>
           </tr>
@@ -119,6 +141,7 @@
           <tr>
             <td>{{ r.media_type }}</td>
             <td><input type="checkbox" data-field="enabled" {% if r.enabled %}checked{% endif %} /></td>
+            <td><input type="checkbox" data-field="auto_scan" {% if r.auto_scan %}checked{% endif %} /></td>
             <td><input data-field="path" value="{{ r.path }}" /></td>
             <td>
               <select data-field="default_category">
@@ -131,7 +154,7 @@
           {% endfor %}
         </tbody>
       </table>
-      <div class="muted" style="margin-top: 8px;">Magazines default to Books → EBooks.</div>
+      <div class="muted" style="margin-top: 8px;">Auto-scan only processes items in roots that are enabled and have "Auto Scan" checked.</div>
     </div>
 
     <div class="panel">
@@ -196,6 +219,8 @@
         exclude_dirs: document.getElementById('exclude_dirs').value,
         extract_metadata: document.getElementById('extract_metadata').checked ? '1' : '0',
         extract_thumbnails: document.getElementById('extract_thumbnails').checked ? '1' : '0',
+        enable_auto_upload: document.getElementById('enable_auto_upload').checked ? '1' : '0',
+        auto_scan_interval: document.getElementById('auto_scan_interval').value,
         media_roots: [],
         templates: {},
       };
@@ -203,9 +228,10 @@
       document.querySelectorAll('#media-roots tbody tr').forEach(row => {
         const media_type = row.children[0].textContent.trim();
         const enabled = row.querySelector('input[data-field="enabled"]').checked;
+        const auto_scan = row.querySelector('input[data-field="auto_scan"]').checked;
         const path = row.querySelector('input[data-field="path"]').value;
         const default_category = row.querySelector('select[data-field="default_category"]').value;
-        data.media_roots.push({ media_type, enabled, path, default_category });
+        data.media_roots.push({ media_type, enabled, auto_scan, path, default_category });
       });
 
       document.querySelectorAll('input[data-template]').forEach(input => {

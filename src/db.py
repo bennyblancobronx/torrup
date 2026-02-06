@@ -54,7 +54,9 @@ def init_db() -> None:
                 media_type TEXT PRIMARY KEY,
                 path TEXT NOT NULL,
                 enabled INTEGER NOT NULL DEFAULT 1,
-                default_category INTEGER NOT NULL DEFAULT 31
+                default_category INTEGER NOT NULL DEFAULT 31,
+                auto_scan INTEGER NOT NULL DEFAULT 0,
+                last_scan TEXT
             )
             """
         )
@@ -67,6 +69,9 @@ def init_db() -> None:
                 release_name TEXT NOT NULL,
                 category INTEGER NOT NULL,
                 tags TEXT NOT NULL DEFAULT '',
+                imdb TEXT,
+                tvmazeid TEXT,
+                tvmazetype TEXT,
                 status TEXT NOT NULL DEFAULT 'queued',
                 message TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
@@ -74,21 +79,37 @@ def init_db() -> None:
                 torrent_path TEXT,
                 nfo_path TEXT,
                 xml_path TEXT,
-                thumb_path TEXT
+                thumb_path TEXT,
+                certainty_score INTEGER DEFAULT 100,
+                approval_status TEXT DEFAULT 'approved'
             )
             """
         )
 
-        # Add thumb_path column if it doesn't exist (migration for existing DBs)
-        try:
-            conn.execute("ALTER TABLE queue ADD COLUMN thumb_path TEXT")
-        except Exception:
-            pass  # Column already exists
+        # Migration for existing DBs
+        migrations = [
+            "ALTER TABLE media_roots ADD COLUMN auto_scan INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE media_roots ADD COLUMN last_scan TEXT",
+            "ALTER TABLE queue ADD COLUMN thumb_path TEXT",
+            "ALTER TABLE queue ADD COLUMN imdb TEXT",
+            "ALTER TABLE queue ADD COLUMN tvmazeid TEXT",
+            "ALTER TABLE queue ADD COLUMN tvmazetype TEXT",
+            "ALTER TABLE queue ADD COLUMN certainty_score INTEGER DEFAULT 100",
+            "ALTER TABLE queue ADD COLUMN approval_status TEXT DEFAULT 'approved'",
+        ]
+        
+        for migration in migrations:
+            try:
+                conn.execute(migration)
+            except sqlite3.OperationalError:
+                pass  # Already exists
 
         # Defaults
         _ensure_setting(conn, "browse_base", "/volume/media")
         _ensure_setting(conn, "output_dir", str(DEFAULT_OUTPUT_DIR))
         _ensure_setting(conn, "exclude_dirs", DEFAULT_EXCLUDES)
+        _ensure_setting(conn, "auto_scan_interval", "60")  # Minutes
+        _ensure_setting(conn, "enable_auto_upload", "0")  # Safety first
 
         for media_type in MEDIA_TYPES:
             base = get_setting(conn, "browse_base")
@@ -129,7 +150,7 @@ def get_setting(conn: sqlite3.Connection, key: str) -> str:
 def set_setting(conn: sqlite3.Connection, key: str, value: str) -> None:
     """Set a setting value."""
     conn.execute(
-        "INSERT INTO settings (key, value) VALUES (?, ?)"
+        "INSERT INTO settings (key, value) VALUES (?, ?) "
         "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
         (key, value),
     )

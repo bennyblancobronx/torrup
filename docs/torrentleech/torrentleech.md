@@ -1,5 +1,7 @@
 # TorrentLeech Upload SME Guide
 
+*Note: This document is a specific tracker integration guide for TorrentLeech. Torrup supports multiple trackers, but adheres to these rules when interacting with TorrentLeech.*
+
 Complete reference for uploading TV Shows, Movies, Music, and Books to TorrentLeech.
 
 **Source Documents:**
@@ -725,6 +727,24 @@ TorrentLeech uses a **single key** for all API operations. This is your **Torren
 
 *Either `nfo` file OR `description` text required
 
+### Torrup Implementation Status (Upload API)
+
+**As of 2026-02-04**
+
+| Field/Behavior | Implemented | Notes |
+|----------------|-------------|-------|
+| `announcekey` | Yes | Uses `TL_ANNOUNCE_KEY` env var. |
+| `category` | Yes | Required. |
+| `torrent` | Yes | Required. |
+| `nfo` | Yes | Required by implementation. |
+| `description` | No | Textual NFO not supported in current client. |
+| `imdb` | No | Not sent. |
+| `tvmazeid` | No | Not sent. |
+| `tvmazetype` | No | Not sent. |
+| `animeid` | No | Not sent. |
+| `igdburl` | No | Not sent. |
+| `tags` | Yes | Comma-separated tags supported. |
+
 ### Upload Response
 
 | Response | Meaning | Source |
@@ -755,6 +775,16 @@ curl "https://www.torrentleech.org/api/torrentsearch" \
 | `query` | **Yes** | Search term in **single quotes** | `[API]` |
 | `exact` | No | Set to `1` for exact match | `[API]` |
 
+### Torrup Implementation Status (Search API)
+
+**As of 2026-02-04**
+
+| Behavior | Implemented | Notes |
+|----------|-------------|-------|
+| `announcekey` | Yes | Required. |
+| `query` in single quotes | Yes | Always wraps with single quotes. |
+| `exact` | Yes | Hardcoded to `1` (no fuzzy search). |
+
 | Response | Meaning |
 |----------|---------|
 | `0` | Not found (safe to upload) |
@@ -780,6 +810,12 @@ curl -X POST \
   https://www.torrentleech.org/torrents/upload/apidownload \
   -o 'filename.torrent'
 ```
+
+### Torrup Implementation Status (Download API)
+
+**As of 2026-02-04**
+
+Not implemented in Torrup.
 
 ---
 

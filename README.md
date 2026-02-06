@@ -1,6 +1,6 @@
-# Torrup - Torrent uploader for TorrentLeech
+# Torrup - Torrent Upload Tool
 
-Web UI + CLI for browsing media libraries, queuing items, generating torrents + NFOs, and uploading to TorrentLeech.
+Web UI + CLI for browsing media libraries, queuing items, generating torrents + NFOs, and uploading to trackers (starting with TorrentLeech support).
 
 ## Version
 
@@ -10,7 +10,7 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 
 - Browse media roots by type (music, movies, TV, books)
 - Queue + batch uploads with editable release names and tags
-- Duplicate check via TorrentLeech search API
+- Duplicate check via tracker search API (supports TorrentLeech)
 - NFO generation using MediaInfo (file paths stripped)
 - .torrent creation via mktorrent with private flag + source tag
 - Metadata extraction via exiftool (optional)
@@ -44,7 +44,7 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| TL_ANNOUNCE_KEY | Yes | TorrentLeech passkey (32 chars) |
+| TL_ANNOUNCE_KEY | Yes | Tracker passkey (e.g., TorrentLeech 32 chars) |
 | SECRET_KEY | Yes | Flask session secret (generate below) |
 | TORRUP_DB_PATH | No | SQLite DB path (default: ./torrup.db) |
 | TORRUP_OUTPUT_DIR | No | Output directory (default: ./output) |

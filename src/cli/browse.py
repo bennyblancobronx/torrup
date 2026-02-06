@@ -18,7 +18,6 @@ def cmd_browse(cli) -> int:
     """Handle: torrup browse <media_type> [path]."""
     media_type = cli.args.media_type
     subpath = getattr(cli.args, "path", None)
-    depth = getattr(cli.args, "depth", 1)
     show_files = getattr(cli.args, "show_files", False)
 
     if media_type not in MEDIA_TYPES:

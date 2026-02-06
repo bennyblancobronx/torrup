@@ -152,13 +152,21 @@
             </div>
           </div>
         </div>
-        <div class="row">
+        <div class="row" id="metadata-fields" style="display: none;">
           <div class="col">
             <div class="field">
-              <label>Category</label>
-              <select id="edit-category" style="width: 100%;"></select>
+              <label>IMDB ID (tt1234567)</label>
+              <input id="edit-imdb" style="width: 100%;" placeholder="tt1234567" />
             </div>
           </div>
+          <div class="col">
+            <div class="field">
+              <label>TVMaze ID</label>
+              <input id="edit-tvmazeid" style="width: 100%;" placeholder="12345" />
+            </div>
+          </div>
+        </div>
+        <div class="row">
           <div class="col">
             <div class="field">
               <label>Tags (comma-separated)</label>
@@ -295,6 +303,18 @@
       document.getElementById('edit-media-type').value = item.media_type;
       document.getElementById('edit-release-name').value = item.release_name;
       document.getElementById('edit-tags').value = item.tags || '';
+      
+      const imdbInput = document.getElementById('edit-imdb');
+      const tvmazeidInput = document.getElementById('edit-tvmazeid');
+      imdbInput.value = item.imdb || '';
+      tvmazeidInput.value = item.tvmazeid || '';
+
+      const metadataFields = document.getElementById('metadata-fields');
+      if (item.media_type === 'movies' || item.media_type === 'tv') {
+        metadataFields.style.display = 'flex';
+      } else {
+        metadataFields.style.display = 'none';
+      }
 
       const categorySelect = document.getElementById('edit-category');
       const options = categoryOptions[item.media_type] || [];
@@ -340,11 +360,13 @@
       const releaseName = document.getElementById('edit-release-name').value;
       const category = document.getElementById('edit-category').value;
       const tags = document.getElementById('edit-tags').value;
+      const imdb = document.getElementById('edit-imdb').value;
+      const tvmazeid = document.getElementById('edit-tvmazeid').value;
 
       const res = await fetch('/api/queue/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ id, release_name: releaseName, category, tags })
+        body: JSON.stringify({ id, release_name: releaseName, category, tags, imdb, tvmazeid })
       });
 
       const data = await res.json();

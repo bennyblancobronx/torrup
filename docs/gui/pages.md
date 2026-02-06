@@ -224,7 +224,7 @@ Wireframes and component specifications for each page.
 |  Filter: [All v]  Date: [Last 7 days v]  Type: [All v]              |
 |                                                                      |
 |  +------------------------------------------------------------------+
-|  | DATE       | RELEASE NAME               | STATUS | TL ID        |
+|  | DATE       | RELEASE NAME               | STATUS | TRACKER ID    |
 |  +------------------------------------------------------------------+
 |  | 2026-02-03 | Movie.Name.2024.1080p...   | OK     | #1234567     |
 |  | 2026-02-03 | Album.FLAC.2024...         | OK     | #1234566     |
@@ -235,7 +235,7 @@ Wireframes and component specifications for each page.
 |  +------------------------------------------------------------------+
 |  | DETAILS: Movie.Name.2024.1080p.BluRay.x264-GROUP                 |
 |  |                                                                  |
-|  |  TorrentLeech ID:  #1234567                                     |
+|  |  Tracker ID:        #1234567 (e.g. TorrentLeech)                 |
 |  |  Category:         Movies :: BlurayRip                          |
 |  |  Tags:             1080p, BluRay                                |
 |  |  Uploaded:         2026-02-03 14:32:15                          |
@@ -252,7 +252,7 @@ Wireframes and component specifications for each page.
 
 | Tab | Content |
 |-----|---------|
-| **Uploads** | Completed uploads with TorrentLeech IDs |
+| **Uploads** | Completed uploads with tracker IDs |
 | **Activity** | Timestamped log of all actions (add, edit, delete, upload) |
 
 ### Components
@@ -261,7 +261,7 @@ Wireframes and component specifications for each page.
 |-----------|-------------|-------------|
 | **Tab Switcher** | `.btn-ghost` | Toggle between Uploads and Activity views |
 | **Filters** | `.input` (select) | Status, date range, media type |
-| **History Table** | `.table` | Date, release name, status, TL ID |
+| **History Table** | `.table` | Date, release name, status, Tracker ID |
 | **Details Panel** | `.card` | Click row to show full details |
 
 ### Data Requirements

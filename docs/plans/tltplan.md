@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-Build a local-first GUI upload tool named **Torrup** (Torrent uploader for TorrentLeech) with queue + batch uploads, configurable settings, and TorrentLeech-compliant upload flow. This is version **v0.1.0**. Metadata lookups are deferred to **0.2.x**.
+Build a local-first GUI upload tool named **Torrup** (Torrent Upload Tool) with queue + batch uploads, configurable settings, and support for trackers (initially TorrentLeech). This is version **v0.1.0**. Metadata lookups are deferred to **0.2.x**.
 
 ## Current Findings (Desktop Feasibility)
 
@@ -17,7 +17,7 @@ Build a local-first GUI upload tool named **Torrup** (Torrent uploader for Torre
 - CLI planned but not implemented in v0.1.x
 - Media-type browsing from clean library roots
 - Queue + batch uploads with background processing
-- Duplicate check via TorrentLeech search API
+- Duplicate check via tracker search API (supports TorrentLeech)
 - NFO generation via MediaInfo (paths stripped)
 - Torrent creation via mktorrent (private flag + source tag)
 - XML sidecar output per item
@@ -63,8 +63,8 @@ All category defaults are editable in settings.
    - Generate NFO (MediaInfo)
    - Create torrent (mktorrent)
    - Write XML sidecar
-   - Exact duplicate check via TL search API (requires announce key)
-   - Upload to TL API
+   - Exact duplicate check via tracker search API (supports TorrentLeech)
+   - Upload to tracker API
 4. Status updates per item (queued, preparing, uploading, success, failed, duplicate)
 
 ## Configuration Surface (Settings UI)
@@ -130,7 +130,7 @@ Planned commands:
 - **Dependencies**: install `mediainfo` and `mktorrent` in the image.
 - **Access control**: GUI-only in v0.1.x; consider CLI when implemented.
 - **Runbook**: build/start commands and expected URL.
-- **Torrent compliance**: v1 only, private flag set, source tag `TorrentLeech.org`, announce URL includes passkey at `/a/<passkey>/announce`.
+- **Torrent compliance**: v1 only, private flag set, source tag (e.g. `TorrentLeech.org`), announce URL includes passkey (e.g. at `/a/<passkey>/announce`).
 
 ## Source Docs and References (local copies)
 

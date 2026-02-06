@@ -198,13 +198,15 @@ class TestGetOutputDir:
 class TestQueueOperations:
     """Tests for queue table operations via routes."""
 
-    def test_add_queue_item(self, client):
+    def test_add_queue_item(self, client, music_root):
         """Verify queue item can be added."""
+        path = music_root / "test-item"
+        path.mkdir(parents=True, exist_ok=True)
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-item",
+                    "path": str(path),
                     "category": 31,
                     "tags": "tag1,tag2",
                 }
@@ -216,14 +218,16 @@ class TestQueueOperations:
         assert data["success"] is True
         assert len(data["ids"]) == 1
 
-    def test_update_queue_status(self, client):
+    def test_update_queue_status(self, client, music_root):
         """Verify queue item status can be updated."""
+        path = music_root / "test-update-status"
+        path.mkdir(parents=True, exist_ok=True)
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-item",
+                    "path": str(path),
                     "category": 31,
                     "tags": "",
                 }
@@ -245,14 +249,16 @@ class TestQueueOperations:
         item = next(i for i in items if i["id"] == item_id)
         assert item["status"] == "preparing"
 
-    def test_delete_queue_item(self, client):
+    def test_delete_queue_item(self, client, music_root):
         """Verify queue item can be deleted."""
+        path = music_root / "test-delete"
+        path.mkdir(parents=True, exist_ok=True)
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-delete",
+                    "path": str(path),
                     "category": 31,
                     "tags": "",
                 }

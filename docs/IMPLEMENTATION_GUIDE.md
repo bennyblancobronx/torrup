@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-**Project**: Torrup - Torrent uploader for TorrentLeech
+**Project**: Torrup - Torrent Upload Tool
 **Current State**: Functionally complete, partially production-ready (needs test coverage + logging)
 **Blocker Count**: 0 HIGH security, 0 MEDIUM security, tests present but coverage is minimal
 
@@ -17,7 +17,7 @@
 - Background worker (polling, state transitions)
 - Docker deployment (non-root user, health checks)
 - Database layer (SQLite, parameterized queries)
-- TorrentLeech API integration (search, upload)
+- Tracker API integration (TorrentLeech search/upload)
 
 ### What's Missing
 - Test coverage (basic tests exist, coverage is minimal)
@@ -35,7 +35,7 @@ Browser <-> Flask App (routes.py) <-> SQLite DB (db.py)
          Background Worker (worker.py)
                 |
                 v
-    mediainfo + mktorrent + TL API (api.py)
+    mediainfo + mktorrent + Tracker API (api.py)
 ```
 
 ### Source Files (778 lines total)
@@ -45,7 +45,7 @@ Browser <-> Flask App (routes.py) <-> SQLite DB (db.py)
 | src/config.py | 140 | Constants, env vars, NFO templates | COMPLETE |
 | src/db.py | 134 | SQLite CRUD | COMPLETE |
 | src/routes.py | 244 | Flask endpoints | COMPLETE |
-| src/api.py | 59 | TorrentLeech API | COMPLETE |
+| src/api.py | 59 | Tracker API Client (e.g. TorrentLeech) | COMPLETE |
 | src/utils.py | 205 | NFO templates, torrent creation, metadata extraction | COMPLETE |
 | src/worker.py | 100 | Queue processor | COMPLETE |
 | app.py | 32 | Entry point | COMPLETE |
@@ -112,7 +112,7 @@ Week 4: Phase 4-5 (Documentation, verification, release)
 
 ## Contracts Reference
 
-### TorrentLeech API
+### Tracker API (example: TorrentLeech)
 
 | Endpoint | URL |
 |----------|-----|
@@ -120,16 +120,16 @@ Week 4: Phase 4-5 (Documentation, verification, release)
 | Search | `https://www.torrentleech.org/api/torrentsearch` |
 | Tracker | `https://tracker.torrentleech.org` |
 
-**Announce URL format:** `https://tracker.torrentleech.org/a/<passkey>/announce`
+**Announce URL format (TL):** `https://tracker.torrentleech.org/a/<passkey>/announce`
 
-### Required Upload Fields
+### Required Upload Fields (TL)
 
 - `announcekey` - 32-char passkey
 - `category` - Category number
 - `torrent` - .torrent file
 - `nfo` - NFO file
 
-### TorrentLeech Compliance
+### Tracker Compliance (TL example)
 
 - Torrent v1 only (no v2 or hybrid)
 - Private flag must be set

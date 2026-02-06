@@ -22,6 +22,7 @@ AUTH_PASS = os.environ.get("TORRUP_AUTH_PASS")
 from src.db import init_db
 from src.routes import bp
 from src.worker import queue_worker
+from src.auto_worker import auto_scan_worker
 
 app = Flask(__name__)
 
@@ -70,9 +71,13 @@ logger.info("Database initialized")
 
 # Start background worker
 if RUN_WORKER:
-    t = threading.Thread(target=queue_worker, daemon=True)
-    t.start()
-    logger.info("Background worker thread started")
+    t1 = threading.Thread(target=queue_worker, daemon=True)
+    t1.start()
+    logger.info("Background queue worker thread started")
+    
+    t2 = threading.Thread(target=auto_scan_worker, daemon=True)
+    t2.start()
+    logger.info("Background auto-scan worker thread started")
 
 if __name__ == "__main__":
     logger.info("Starting Torrup application on port 5001")

@@ -2,6 +2,12 @@
 
 import importlib
 import os
+from pathlib import Path
+
+
+def _ensure_dir(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 class TestIndexRoute:
@@ -223,13 +229,14 @@ class TestQueueAddRoute:
         # Empty items list returns 400
         assert res.status_code == 400
 
-    def test_queue_add_validates_media_type(self, client):
+    def test_queue_add_validates_media_type(self, client, tmp_path):
         """Verify queue add skips invalid media type."""
+        path = _ensure_dir(tmp_path / "invalid-media" / "item")
         payload = {
             "items": [
                 {
                     "media_type": "invalid",
-                    "path": "/tmp/test",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -239,13 +246,14 @@ class TestQueueAddRoute:
         data = res.get_json()
         assert len(data["ids"]) == 0  # Invalid item skipped
 
-    def test_queue_add_validates_category(self, client):
+    def test_queue_add_validates_category(self, client, music_root):
         """Verify queue add validates category for media type."""
+        path = _ensure_dir(music_root / "test-category")
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test",
+                    "path": str(path),
                     "category": 99999,  # Invalid category
                 }
             ]
@@ -255,13 +263,14 @@ class TestQueueAddRoute:
         data = res.get_json()
         assert len(data["ids"]) == 0  # Invalid category skipped
 
-    def test_queue_add_success(self, client):
+    def test_queue_add_success(self, client, music_root):
         """Verify queue add succeeds with valid data."""
+        path = _ensure_dir(music_root / "test-item")
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-item",
+                    "path": str(path),
                     "category": 31,
                     "tags": "tag1,tag2",
                 }
@@ -289,13 +298,14 @@ class TestQueueAddRoute:
         data = res.get_json()
         assert len(data["ids"]) == 0  # Empty path skipped
 
-    def test_queue_add_skips_invalid_release_name(self, client):
+    def test_queue_add_skips_invalid_release_name(self, client, music_root):
         """Verify queue add skips items with invalid release name."""
+        path = _ensure_dir(music_root / "test-invalid-release")
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-item",
+                    "path": str(path),
                     "category": 31,
                     "release_name": "../evil/path",  # Invalid
                 }
@@ -306,13 +316,14 @@ class TestQueueAddRoute:
         data = res.get_json()
         assert len(data["ids"]) == 0  # Invalid release_name skipped
 
-    def test_queue_add_skips_invalid_category_value(self, client):
+    def test_queue_add_skips_invalid_category_value(self, client, music_root):
         """Verify queue add skips items with non-integer category."""
+        path = _ensure_dir(music_root / "test-invalid-category")
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-item",
+                    "path": str(path),
                     "category": "invalid",  # Non-integer
                 }
             ]
@@ -322,13 +333,14 @@ class TestQueueAddRoute:
         data = res.get_json()
         assert len(data["ids"]) == 0  # Invalid category skipped
 
-    def test_queue_add_skips_missing_category(self, client):
+    def test_queue_add_skips_missing_category(self, client, music_root):
         """Verify queue add skips items with missing category."""
+        path = _ensure_dir(music_root / "test-missing-category")
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-item",
+                    "path": str(path),
                     # No category key
                 }
             ]
@@ -338,18 +350,55 @@ class TestQueueAddRoute:
         data = res.get_json()
         assert len(data["ids"]) == 0  # Missing category skipped
 
+    def test_queue_add_rejects_path_outside_root(self, client, music_root, tmp_path):
+        """Verify queue add rejects paths outside configured media root."""
+        outside_path = _ensure_dir(tmp_path / "outside" / "item")
+        payload = {
+            "items": [
+                {
+                    "media_type": "music",
+                    "path": str(outside_path),
+                    "category": 31,
+                }
+            ]
+        }
+        res = client.post("/api/queue/add", json=payload)
+        assert res.status_code == 200
+        data = res.get_json()
+        assert len(data["ids"]) == 0
+
+    def test_queue_add_rejects_symlink_path(self, client, music_root, tmp_path):
+        """Verify queue add rejects symlink paths."""
+        target = _ensure_dir(music_root / "real-item")
+        link_path = tmp_path / "symlink-item"
+        link_path.symlink_to(target, target_is_directory=True)
+        payload = {
+            "items": [
+                {
+                    "media_type": "music",
+                    "path": str(link_path),
+                    "category": 31,
+                }
+            ]
+        }
+        res = client.post("/api/queue/add", json=payload)
+        assert res.status_code == 200
+        data = res.get_json()
+        assert len(data["ids"]) == 0
+
 
 class TestQueueListRoute:
     """Tests for the queue list API route."""
 
-    def test_queue_list_returns_items(self, client):
+    def test_queue_list_returns_items(self, client, music_root):
         """Verify queue list returns added items."""
+        path = _ensure_dir(music_root / "test-list")
         # Add an item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-list",
+                    "path": str(path),
                     "category": 31,
                     "tags": "",
                 }
@@ -374,14 +423,15 @@ class TestQueueUpdateRoute:
         assert res.status_code == 400
         assert "Missing id" in res.get_json()["error"]
 
-    def test_queue_update_validates_status(self, client):
+    def test_queue_update_validates_status(self, client, music_root):
         """Verify queue update validates status values."""
+        path = _ensure_dir(music_root / "test-update-status")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-update-status",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -397,14 +447,15 @@ class TestQueueUpdateRoute:
         assert res.status_code == 400
         assert "Invalid status" in res.get_json()["error"]
 
-    def test_queue_update_validates_release_name(self, client):
+    def test_queue_update_validates_release_name(self, client, music_root):
         """Verify queue update validates release name."""
+        path = _ensure_dir(music_root / "test-update-name")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-update-name",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -420,14 +471,15 @@ class TestQueueUpdateRoute:
         assert res.status_code == 400
         assert "Invalid release_name" in res.get_json()["error"]
 
-    def test_queue_update_success(self, client):
+    def test_queue_update_success(self, client, music_root):
         """Verify queue update succeeds with valid status."""
+        path = _ensure_dir(music_root / "test-update-success")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-update-success",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -443,14 +495,15 @@ class TestQueueUpdateRoute:
         assert res.status_code == 200
         assert res.get_json()["success"] is True
 
-    def test_queue_update_release_name_success(self, client):
+    def test_queue_update_release_name_success(self, client, music_root):
         """Verify release_name can be updated with valid value."""
+        path = _ensure_dir(music_root / "test-update-name-ok")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-update-name-ok",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -472,14 +525,15 @@ class TestQueueUpdateRoute:
         item = next(i for i in items if i["id"] == item_id)
         assert item["release_name"] == "New.Valid.Release.Name"
 
-    def test_queue_update_release_name_empty(self, client):
+    def test_queue_update_release_name_empty(self, client, music_root):
         """Verify release_name can be updated to empty string."""
+        path = _ensure_dir(music_root / "test-update-name-empty")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-update-name-empty",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -504,14 +558,15 @@ class TestQueueDeleteRoute:
         assert res.status_code == 400
         assert "Missing id" in res.get_json()["error"]
 
-    def test_queue_delete_removes_item(self, client):
+    def test_queue_delete_removes_item(self, client, music_root):
         """Verify queue delete removes the item."""
+        path = _ensure_dir(music_root / "test-delete-item")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-delete-item",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -697,14 +752,15 @@ class TestQueueUpdateEdgeCases:
         assert res.status_code == 400
         assert "Invalid id" in res.get_json()["error"]
 
-    def test_queue_update_no_fields(self, client):
+    def test_queue_update_no_fields(self, client, music_root):
         """Verify update with no fields is rejected."""
+        path = _ensure_dir(music_root / "test-no-fields")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-no-fields",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -720,14 +776,15 @@ class TestQueueUpdateEdgeCases:
         assert res.status_code == 400
         assert "No updates" in res.get_json()["error"]
 
-    def test_queue_update_category(self, client):
+    def test_queue_update_category(self, client, music_root):
         """Verify category can be updated."""
+        path = _ensure_dir(music_root / "test-update-cat")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-update-cat",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -742,14 +799,15 @@ class TestQueueUpdateEdgeCases:
         )
         assert res.status_code == 200
 
-    def test_queue_update_invalid_category(self, client):
+    def test_queue_update_invalid_category(self, client, music_root):
         """Verify invalid category is rejected."""
+        path = _ensure_dir(music_root / "test-invalid-cat")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-invalid-cat",
+                    "path": str(path),
                     "category": 31,
                 }
             ]
@@ -764,14 +822,15 @@ class TestQueueUpdateEdgeCases:
         )
         assert res.status_code == 400
 
-    def test_queue_update_tags(self, client):
+    def test_queue_update_tags(self, client, music_root):
         """Verify tags can be updated."""
+        path = _ensure_dir(music_root / "test-update-tags")
         # Add item first
         payload = {
             "items": [
                 {
                     "media_type": "music",
-                    "path": "/tmp/test-update-tags",
+                    "path": str(path),
                     "category": 31,
                 }
             ]

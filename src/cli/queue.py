@@ -5,15 +5,39 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from src.api import check_exists
 from src.config import CATEGORY_OPTIONS, MEDIA_TYPES
-from src.db import db
-from src.utils import now_iso, suggest_release_name
+from src.db import db, get_setting
+from src.utils import generate_release_name, now_iso, suggest_release_name
+from src.utils.metadata import extract_metadata
 from src.worker import process_queue_item
 
 # Exit codes
 EXIT_SUCCESS = 0
 EXIT_INVALID_ARGS = 2
 EXIT_NOT_FOUND = 3
+
+
+def calculate_certainty(metadata: dict, media_type: str) -> int:
+    """Calculate certainty score (0-100) based on metadata quality."""
+    score = 0
+    if media_type == "music":
+        # Music requirements
+        if metadata.get("artist"): score += 20
+        if metadata.get("album"): score += 20
+        if metadata.get("year"): score += 20
+        if metadata.get("format") == "FLAC": score += 20
+        # Bonus for high-res
+        if metadata.get("bitrate") == "24bit": score += 20
+        # Penalty for MP3
+        if metadata.get("format") == "MP3": score -= 10
+    else:
+        # Generic/Movie requirements
+        if metadata.get("title"): score += 40
+        if metadata.get("year"): score += 40
+        if metadata.get("imdb") or metadata.get("tvmazeid"): score += 20
+
+    return max(0, min(100, score))
 
 
 def cmd_queue_add(cli) -> int:
@@ -23,7 +47,6 @@ def cmd_queue_add(cli) -> int:
     category = getattr(cli.args, "category", None)
     tags = getattr(cli.args, "tags", "") or ""
     release_name = getattr(cli.args, "release_name", None)
-    priority = getattr(cli.args, "priority", 0)
 
     if media_type not in MEDIA_TYPES:
         return cli.error(f"Invalid media type: {media_type}", EXIT_INVALID_ARGS)
@@ -35,23 +58,47 @@ def cmd_queue_add(cli) -> int:
     if category is None:
         category = CATEGORY_OPTIONS[media_type][0]["id"]
 
+    # Enhanced logic
+    certainty = 100
+    approval = "approved"
+    
+    # 1. Extract Metadata
+    try:
+        meta = extract_metadata(path, media_type)
+    except Exception:
+        meta = {}
+
+    # 2. Generate Name (if not overridden)
     if not release_name:
-        release_name = suggest_release_name(media_type, path)
+        with db() as conn:
+            group = get_setting(conn, "release_group") or "Torrup"
+        release_name = generate_release_name(meta, media_type, group)
+        # Fallback if metadata empty
+        if release_name == "unnamed" or release_name.startswith("Unknown"):
+            release_name = suggest_release_name(media_type, path)
+
+    # 3. Calculate Certainty
+    certainty = calculate_certainty(meta, media_type)
+    if certainty < 80:
+        approval = "pending_approval"
 
     with db() as conn:
         cursor = conn.execute(
             """
-            INSERT INTO queue (media_type, path, release_name, category, tags, status, message, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, 'queued', '', ?, ?)
+            INSERT INTO queue (
+                media_type, path, release_name, category, tags, status, 
+                message, created_at, updated_at, certainty_score, approval_status
+            )
+            VALUES (?, ?, ?, ?, ?, 'queued', '', ?, ?, ?, ?)
             """,
-            (media_type, str(path), release_name, category, tags, now_iso(), now_iso()),
+            (media_type, str(path), release_name, category, tags, now_iso(), now_iso(), certainty, approval),
         )
         item_id = cursor.lastrowid
         conn.commit()
 
     cli.output(
-        {"id": item_id, "release_name": release_name},
-        f"Added to queue: id={item_id}, release_name={release_name}",
+        {"id": item_id, "release_name": release_name, "certainty": certainty, "approval": approval},
+        f"Added to queue: id={item_id}, release={release_name}, certainty={certainty}%, status={approval}",
     )
     return EXIT_SUCCESS
 
@@ -86,7 +133,8 @@ def cmd_queue_list(cli) -> int:
         if not items:
             print("Queue is empty")
         for item in items:
-            print(f"[{item['id']}] {item['status']:10} {item['release_name']}")
+            q_str = f"[{item['certainty_score']}%]"
+            print(f"[{item['id']}] {item['status']:10} {q_str:6} {item['release_name']}")
     return EXIT_SUCCESS
 
 
@@ -112,9 +160,9 @@ def cmd_queue_update(cli) -> int:
         if getattr(cli.args, "status", None):
             updates.append("status = ?")
             params.append(cli.args.status)
-        if getattr(cli.args, "priority", None) is not None:
-            updates.append("priority = ?")
-            params.append(cli.args.priority)
+        if getattr(cli.args, "approval", None):
+            updates.append("approval_status = ?")
+            params.append(cli.args.approval)
 
         if updates:
             updates.append("updated_at = ?")
@@ -160,8 +208,9 @@ def cmd_queue_run(cli) -> int:
 
     while True:
         with db() as conn:
+            # Only process approved items
             row = conn.execute(
-                "SELECT * FROM queue WHERE status = 'queued' ORDER BY id ASC LIMIT 1"
+                "SELECT * FROM queue WHERE status = 'queued' AND approval_status = 'approved' ORDER BY id ASC LIMIT 1"
             ).fetchone()
             if row:
                 if not cli.quiet:
@@ -170,7 +219,7 @@ def cmd_queue_run(cli) -> int:
                 conn.commit()
             elif once:
                 if not cli.quiet:
-                    print("No items to process")
+                    print("No approved items to process")
                 break
 
         if once:

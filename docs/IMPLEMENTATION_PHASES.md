@@ -58,7 +58,7 @@ csrf = CSRFProtect(app)
 # REQUIRED - Generate with: python -c "import secrets; print(secrets.token_hex(32))"
 SECRET_KEY=
 
-# REQUIRED - Your TorrentLeech passkey (32 chars)
+# REQUIRED - Your tracker passkey (e.g. TorrentLeech 32 chars)
 TL_ANNOUNCE_KEY=
 
 # REQUIRED - Path to your media library
@@ -88,7 +88,7 @@ tests/
   test_routes.py        # Flask endpoint tests (exists)
   test_utils.py         # Utility function tests (exists)
   test_db.py            # Database CRUD tests (add)
-  test_api.py           # TL API mock tests (add)
+  test_api.py           # Tracker API mock tests (add)
   test_worker.py        # Worker integration tests (add)
 ```
 
@@ -293,13 +293,13 @@ flake8 src/ app.py
 
 ```bash
 # Build image
-docker build -t tlt:0.1.1 .
+docker build -t torrup:0.1.1 .
 
 # Test container
 docker run -d -p 5001:5001 \
   -e SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))") \
   -e TL_ANNOUNCE_KEY=test \
-  tlt:0.1.1
+  torrup:0.1.1
 
 # Health check
 curl http://localhost:5001/health

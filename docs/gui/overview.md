@@ -1,6 +1,6 @@
 # Torrup GUI Guide - Overview
 
-Complete interface specification for the Torrup (Torrent uploader for TorrentLeech) web application.
+Complete interface specification for the Torrup (Torrent Upload Tool) web application.
 
 ## Overview
 
@@ -53,7 +53,7 @@ Every page uses the same header and optional footer.
 
 ```
 +----------------------------------------------------------------------+
-|  TorrentLeech batch uploader  -  Local-first  -  Docker ready        |
+|  Multi-tracker batch uploader  -  Local-first  -  Docker ready        |
 +----------------------------------------------------------------------+
 ```
 

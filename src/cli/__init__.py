@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 
-from src.config import APP_VERSION, CATEGORY_OPTIONS, MEDIA_TYPES
+from src.config import APP_VERSION, MEDIA_TYPES
 from src.db import init_db
 
 from src.cli.browse import cmd_browse
@@ -25,6 +25,7 @@ from src.cli.upload import (
     cmd_uploads_list,
     cmd_uploads_show,
 )
+from src.cli.scan import cmd_scan
 
 # Exit codes
 EXIT_SUCCESS = 0
@@ -66,8 +67,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress non-essential output")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
-    parser.add_argument("--config", type=str, help="Config file path")
-
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     # settings
@@ -86,6 +85,13 @@ def build_parser() -> argparse.ArgumentParser:
     browse_parser.add_argument("--depth", type=int, default=1, help="Max directory depth")
     browse_parser.add_argument("--show-files", action="store_true", help="Include files")
 
+    # scan
+    scan_parser = subparsers.add_parser("scan", help="Scan library for missing uploads")
+    scan_parser.add_argument("media_type", choices=MEDIA_TYPES, help="Media type")
+    scan_parser.add_argument("path", help="Path to scan")
+    scan_parser.add_argument("--recursive", "-r", action="store_true", help="Recursive scan")
+    scan_parser.add_argument("--dry-run", action="store_true", help="Identify only, do not queue")
+
     # queue
     queue_parser = subparsers.add_parser("queue", help="Manage upload queue")
     queue_sub = queue_parser.add_subparsers(dest="queue_cmd")
@@ -96,7 +102,6 @@ def build_parser() -> argparse.ArgumentParser:
     queue_add.add_argument("--category", type=int, help="Category ID")
     queue_add.add_argument("--tags", help="Comma-separated tags")
     queue_add.add_argument("--release-name", help="Override release name")
-    queue_add.add_argument("--priority", type=int, default=0, help="Queue priority")
 
     queue_list = queue_sub.add_parser("list", help="List queue")
     queue_list.add_argument("--status", help="Filter by status")
@@ -110,7 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
     queue_update.add_argument("--category", type=int, help="New category")
     queue_update.add_argument("--tags", help="New tags")
     queue_update.add_argument("--status", help="New status")
-    queue_update.add_argument("--priority", type=int, help="New priority")
+    queue_update.add_argument("--approval", choices=["approved", "pending_approval", "rejected"], help="Approval status")
 
     queue_delete = queue_sub.add_parser("delete", help="Delete from queue")
     queue_delete.add_argument("id", type=int, help="Queue item ID")
@@ -172,6 +177,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.parse_args(["settings", "--help"])
     elif args.command == "browse":
         return cmd_browse(cli)
+    elif args.command == "scan":
+        return cmd_scan(cli)
     elif args.command == "queue":
         if args.queue_cmd == "add":
             return cmd_queue_add(cli)

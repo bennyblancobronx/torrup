@@ -8,7 +8,7 @@ How Torrup works internally.
 Browser <-> Flask App <-> SQLite DB
                 |
                 v
-         Background Worker
+         Background Worker + Auto-Scan Worker
                 |
                 v
     mediainfo + mktorrent + TL API
@@ -16,22 +16,31 @@ Browser <-> Flask App <-> SQLite DB
 
 ## Core Components
 
+### Tracker Module (src/trackers/torrentleech.py)
+
+Tracker-specific configuration extracted from config.py:
+- Base URLs (site, API, announce)
+- Category mappings (ID to label, per media type)
+- Source tag and announce key handling
+- Imported by config.py so the rest of the app stays tracker-agnostic
+
 ### Database (src/db.py)
 
 SQLite with three tables:
 - `settings` - Global configuration (browse_base, output_dir, exclude_dirs, release_group, templates)
-- `media_roots` - Per-media-type settings (path, enabled, default_category)
-- `queue` - Upload queue (path, release_name, category, status, timestamps)
+- `media_roots` - Per-media-type settings (path, enabled, default_category, auto_scan, last_scan)
+- `queue` - Upload queue (path, release_name, category, status, timestamps, imdb, tvmazeid, tvmazetype, certainty_score, approval_status)
 
 ### API Client (src/api.py)
 
-TorrentLeech integration:
-- `check_exists(release_name)` - Search API duplicate check
-- `upload_torrent(torrent_path, nfo_path, category, tags)` - Upload API
+Tracker integration (currently supports TorrentLeech):
+- `check_exists(release_name, exact=False)` - Search API duplicate check. Pass `exact=True` for strict matching.
+- `upload_torrent(torrent_path, nfo_path, category, tags, imdb=None, tvmazeid=None, tvmazetype=None)` - Upload API with optional external IDs
 
-### Utilities (src/utils.py)
+### Utilities (src/utils/)
 
-Helper functions:
+Helper functions (src/utils/core.py, src/utils/nfo.py, src/utils/torrent.py):
+- `generate_release_name(metadata, media_type, release_group)` - Build a release name from extracted metadata
 - `generate_nfo(path, release_name, out_dir, media_type, release_group, metadata)` - NFO generation using templates
 - `create_torrent(path, release_name, out_dir)` - mktorrent wrapper
   - Uses announce URL format `https://tracker.torrentleech.org/a/<passkey>/announce`
@@ -50,15 +59,16 @@ Thumbnail extraction (ffmpeg):
 - `extract_thumbnail(path, out_dir, release_name, media_type)` - Extract video frame or album art
 - `_extract_video_thumbnail(video_path, out_path)` - Extract frame at 10% duration
 - `_extract_album_art(audio_path, out_path)` - Extract embedded album artwork
-- `extract_all_album_art(path, out_dir, release_name)` - Batch extraction for music folders
 
-### Routes (src/routes.py)
+### Routes (src/routes.py + src/routes_queue.py)
 
-Flask endpoints:
+Page routes and browse/settings API (src/routes.py):
 - `GET /` - Main UI
 - `GET /settings` - Settings UI
 - `POST /api/settings` - Update settings
 - `GET /api/browse` - Browse media folders
+
+Queue API routes (src/routes_queue.py):
 - `POST /api/queue/add` - Add items to queue
 - `GET /api/queue` - List queue
 - `POST /api/queue/update` - Update queue item
@@ -68,12 +78,27 @@ Flask endpoints:
 
 Background processing loop:
 1. Poll queue for items with status `queued`
-2. Check for duplicates via TL search API
+2. Check for duplicates via tracker search API
 3. Generate NFO with mediainfo
 4. Create torrent with mktorrent
 5. Write XML sidecar
-6. Upload to TorrentLeech
+6. Upload to tracker
 7. Update status (success/failed/duplicate)
+
+### Auto-Scan Worker (src/auto_worker.py)
+
+Background thread that automatically discovers missing uploads:
+1. Periodically scans enabled media roots (interval set by `auto_scan_interval`)
+2. Checks if content already exists on the tracker
+3. Queues missing items automatically
+4. Controlled by `enable_auto_upload` (default off) and `auto_scan_interval` settings
+
+### Queue Path Validation
+
+`/api/queue/add` accepts only paths that:
+- Exist on disk
+- Are under the enabled media root for the given media type
+- Are not symlinks
 
 ## Upload Flow
 
@@ -81,12 +106,12 @@ Background processing loop:
 1. User browses media library
 2. User selects items and adds to queue
 3. Worker picks up queued item
-4. Duplicate check via TL API
+4. Duplicate check via tracker API
    - If found: mark as "duplicate", skip
 5. Generate NFO (mediainfo)
 6. Create .torrent (mktorrent)
 7. Write XML metadata
-8. Upload to TL API
+8. Upload to tracker API
    - Success: mark as "success" with torrent ID
    - Failure: mark as "failed" with error
 ```
@@ -99,6 +124,13 @@ Background processing loop:
 - movies
 - tv
 - books
+
+### Auto-Scan Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| enable_auto_upload | 0 | Enable automatic scanning and queuing (safety first -- off by default) |
+| auto_scan_interval | 60 | Minutes between auto-scan cycles |
 
 ### Category Defaults
 
@@ -253,6 +285,19 @@ torrup queue delete <id>
 # Run worker (process queue)
 torrup queue run [--once] [--interval N]
 ```
+
+### Scan
+
+```bash
+# Scan a library for content missing from the tracker
+torrup scan <media_type> <path>
+
+# Options
+torrup scan music /volume/media/music --recursive
+torrup scan music /volume/media/music --dry-run
+```
+
+Currently supports music scanning (walks artist/album directories).
 
 ### Prepare and Upload
 

@@ -5,12 +5,15 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from src.config import ANNOUNCE_KEY, TL_TRACKER
+from src.config import ANNOUNCE_KEY
+from src.trackers import torrentleech as tl
 from src.utils.core import get_folder_size, validate_path_for_subprocess
 
 
 def pick_piece_size(total_bytes: int) -> int:
-    """Calculate optimal piece size for torrent based on total size."""
+    """Calculate optimal piece size for torrent based on total size.
+    Aims for 1500-2200 pieces as recommended by TorrentLeech.
+    """
     size_mb = total_bytes / (1024 * 1024)
     if size_mb < 50:
         return 15  # 32KB
@@ -26,7 +29,11 @@ def pick_piece_size(total_bytes: int) -> int:
         return 20  # 1MB
     if size_mb < 4096:
         return 21  # 2MB
-    return 22  # 4MB
+    if size_mb < 8192:
+        return 22  # 4MB
+    if size_mb < 16384:
+        return 23  # 8MB
+    return 24  # 16MB
 
 
 def create_torrent(path: Path, release_name: str, out_dir: Path) -> Path:
@@ -41,10 +48,8 @@ def create_torrent(path: Path, release_name: str, out_dir: Path) -> Path:
     except ValueError as e:
         raise ValueError(f"Cannot create torrent: {e}") from e
     piece_size = pick_piece_size(total_size)
-    # TL docs specify personalized announce URLs in the form /a/<passkey>/announce
-    announce_url = (
-        f"{TL_TRACKER}/a/{ANNOUNCE_KEY}/announce" if ANNOUNCE_KEY else TL_TRACKER
-    )
+    
+    announce_url = tl.get_announce_url(ANNOUNCE_KEY)
 
     # Validate paths before subprocess call
     if not validate_path_for_subprocess(path):
@@ -60,7 +65,7 @@ def create_torrent(path: Path, release_name: str, out_dir: Path) -> Path:
         "-a",
         announce_url,
         "-s",
-        "TorrentLeech.org",
+        tl.SOURCE_TAG,
         "-o",
         str(output_path),
         str(path),

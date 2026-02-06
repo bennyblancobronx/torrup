@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-02-06
+
+### Added
+- Tracker module system (src/trackers/) - extracted TorrentLeech config into reusable tracker module
+- Auto-scan worker (src/auto_worker.py) - background thread that periodically scans enabled media roots and queues missing content
+- CLI scan command (src/cli/scan.py) - `torrup scan` for manual library scanning with duplicate detection
+- Certainty scoring system - metadata quality scoring (0-100%) with automatic approval gating
+- IMDB and TVMaze ID support in queue items and upload API
+- Dashboard stats endpoint (GET /api/stats) with queue counts, automation status, last scan time
+- System status panel on main page with live-updating stats
+- Automation settings panel in settings UI (enable auto-scan, scan interval)
+- Auto-scan checkbox per media root in settings
+- IMDB/TVMaze metadata fields in queue edit modal (movies/tv only)
+- generate_release_name() function for metadata-based release naming
+- New DB columns: imdb, tvmazeid, tvmazetype, certainty_score, approval_status on queue table
+- New DB columns: auto_scan, last_scan on media_roots table
+- New settings: auto_scan_interval, enable_auto_upload
+
+### Changed
+- Upload API now accepts optional imdb, tvmazeid, tvmazetype parameters
+- check_exists() now supports exact vs fuzzy search mode
+- Queue worker only processes approved items (approval_status = 'approved')
+- Queue list shows certainty percentage
+- Branding updated from "Torrent uploader for TorrentLeech" to "Torrent Upload Tool"
+- Category options moved from config.py to tracker module
+- Routes split into routes.py + routes_queue.py for file size compliance
+
+### Fixed
+- Missing extract_metadata import in routes.py causing NameError on queue add
+- Hardcoded /Volumes/media path in docker-compose.yml restored to env var
+- Missing trailing newlines in db.py and cli/queue.py
+
+### Tests
+- Split monolithic test_utils.py into focused test files: test_core.py, test_metadata.py, test_nfo.py, test_thumbnail.py, test_torrent.py
+- 216 tests passing
+
+## [0.1.3] - 2026-02-04
+
+### Fixed
+- Corrected settings upsert SQL in `set_setting`
+- NFO generation now captures mediainfo for single-file uploads
+- Queue add now validates paths against enabled media roots and rejects symlinks/out-of-root paths
+
+### Tests
+- Added coverage for queue add path validation and updated queue-related route/db tests to use configured media roots
+
 ## [0.1.2] - 2026-02-04
 
 ### Changed
@@ -43,7 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 - **206 passing tests** with **100% coverage** (2026-02-03)
   - test_db.py - 18 database tests
-  - test_api.py - 9 API client tests (mocked)
+  - test_api.py - 9 Tracker API client tests (mocked)
   - test_routes.py - 44 endpoint tests
   - test_utils.py - 72 utility tests
   - test_worker.py - 10 worker tests
@@ -83,12 +129,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-12-01
 
 ### Added
-- Core Flask application with TorrentLeech API integration
+- Core Flask application with tracker API integration (supports TorrentLeech)
 - Web UI for browsing media libraries and uploading torrents
 - Queue system with background worker for batch uploads
 - NFO generation using mediainfo
 - Torrent creation using mktorrent (private flag, source tag)
-- Duplicate detection via TorrentLeech search API
+- Duplicate detection via tracker search API
 - Settings management UI (media roots, templates, categories)
 - Docker containerization with Dockerfile
 - Environment-based configuration

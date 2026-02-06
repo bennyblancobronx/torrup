@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, render_template, request
 from src.extensions import limiter
 
 # Security constants
-VALID_FIELDS = frozenset(["release_name", "category", "tags", "status"])
+VALID_FIELDS = frozenset(["release_name", "category", "tags", "status", "imdb", "tvmazeid", "tvmazetype"])
 VALID_STATUSES = frozenset(["queued", "preparing", "uploading", "success", "failed", "duplicate"])
 
 
@@ -45,6 +45,7 @@ from src.config import (
 )
 from src.db import db, get_excludes, get_media_roots, get_setting, set_setting
 from src.utils import (
+    extract_metadata,
     get_folder_size,
     human_size,
     is_excluded,
@@ -66,6 +67,35 @@ def health():
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return jsonify({"status": "unhealthy"}), 503
+
+
+@bp.route('/api/stats')
+def stats():
+    """Get system statistics for dashboard."""
+    try:
+        with db() as conn:
+            queue_total = conn.execute("SELECT COUNT(*) FROM queue").fetchone()[0]
+            queue_pending = conn.execute("SELECT COUNT(*) FROM queue WHERE status = 'queued'").fetchone()[0]
+            
+            auto_enabled = get_setting(conn, "enable_auto_upload") == "1"
+            auto_interval = get_setting(conn, "auto_scan_interval") or "60"
+            
+            music_root = conn.execute("SELECT last_scan FROM media_roots WHERE media_type = 'music'").fetchone()
+            last_music_scan = music_root["last_scan"] if music_root else None
+            if last_music_scan:
+                # Format ISO to simpler date
+                last_music_scan = last_music_scan.split('.')[0].replace('T', ' ')
+
+            return jsonify({
+                "queue_total": queue_total,
+                "queue_pending": queue_pending,
+                "auto_enabled": auto_enabled,
+                "auto_interval": auto_interval,
+                "last_music_scan": last_music_scan
+            })
+    except Exception as e:
+        logger.error(f"Stats failed: {e}")
+        return jsonify({"error": "Failed to load stats"}), 500
 
 
 @bp.route("/")
@@ -140,7 +170,7 @@ def update_settings() -> tuple[Any, int]:
     data = request.json or {}
     with db() as conn:
         # Basic settings
-        for key in ["browse_base", "output_dir", "exclude_dirs", "release_group", "extract_metadata", "extract_thumbnails"]:
+        for key in ["browse_base", "output_dir", "exclude_dirs", "release_group", "extract_metadata", "extract_thumbnails", "auto_scan_interval", "enable_auto_upload"]:
             if key in data:
                 set_setting(conn, key, str(data[key]))
 
@@ -157,13 +187,14 @@ def update_settings() -> tuple[Any, int]:
                 continue
             conn.execute(
                 """
-                UPDATE media_roots SET path = ?, enabled = ?, default_category = ?
+                UPDATE media_roots SET path = ?, enabled = ?, default_category = ?, auto_scan = ?
                 WHERE media_type = ?
                 """,
                 (
                     row.get("path", ""),
                     1 if row.get("enabled") else 0,
                     int(row.get("default_category", CATEGORY_OPTIONS[media_type][0]["id"])),
+                    1 if row.get("auto_scan") else 0,
                     media_type,
                 ),
             )
@@ -256,147 +287,6 @@ def browse() -> tuple[Any, int]:
     )
 
 
-@bp.route("/api/queue/add", methods=["POST"])
-@limiter.limit("10 per minute")
-def add_queue() -> tuple[Any, int]:
-    """Add items to upload queue."""
-    data = request.json or {}
-    items = data.get("items", [])
-    if not items:
-        return jsonify({"error": "No items provided"}), 400
-    ids = _enqueue_items(items)
-    return jsonify({"success": True, "ids": ids}), 200
 
-
-@bp.route("/api/queue")
-def list_queue() -> tuple[Any, int]:
-    """List all queue items."""
-    with db() as conn:
-        rows = conn.execute("SELECT * FROM queue ORDER BY id DESC").fetchall()
-        return jsonify([dict(r) for r in rows]), 200
-
-
-@bp.route("/api/queue/update", methods=["POST"])
-@limiter.limit("30 per minute")
-def update_queue() -> tuple[Any, int]:
-    """Update a queue item."""
-    data = request.json or {}
-    item_id = data.get("id")
-    if not item_id:
-        return jsonify({"error": "Missing id"}), 400
-
-    # Validate item_id is integer
-    try:
-        item_id = int(item_id)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid id"}), 400
-
-    updates = []
-    params = []
-
-    # Validate and process each field
-    for field in VALID_FIELDS:
-        if field not in data:
-            continue
-
-        value = data[field]
-
-        if field == "release_name":
-            if value and not validate_release_name(str(value)):
-                return jsonify({"error": "Invalid release_name"}), 400
-            updates.append("release_name = ?")
-            params.append(str(value) if value else "")
-
-        elif field == "category":
-            try:
-                category = int(value)
-            except (ValueError, TypeError):
-                return jsonify({"error": "Invalid category"}), 400
-            updates.append("category = ?")
-            params.append(category)
-
-        elif field == "tags":
-            sanitized = sanitize_tags(str(value)) if value else ""
-            updates.append("tags = ?")
-            params.append(sanitized)
-
-        elif field == "status":
-            if value not in VALID_STATUSES:
-                return jsonify({"error": "Invalid status"}), 400
-            updates.append("status = ?")
-            params.append(value)
-
-    if not updates:
-        return jsonify({"error": "No updates"}), 400
-
-    params.extend([now_iso(), item_id])
-    with db() as conn:
-        conn.execute(
-            f"UPDATE queue SET {', '.join(updates)}, updated_at = ? WHERE id = ?",
-            params,
-        )
-        conn.commit()
-
-    return jsonify({"success": True}), 200
-
-
-@bp.route("/api/queue/delete", methods=["POST"])
-@limiter.limit("20 per minute")
-def delete_queue() -> tuple[Any, int]:
-    """Delete a queue item."""
-    data = request.json or {}
-    item_id = data.get("id")
-    if not item_id:
-        return jsonify({"error": "Missing id"}), 400
-
-    with db() as conn:
-        conn.execute("DELETE FROM queue WHERE id = ?", (item_id,))
-        conn.commit()
-
-    return jsonify({"success": True}), 200
-
-
-def _enqueue_items(items: list[dict[str, Any]]) -> list[int]:
-    """Add items to the queue and return their IDs."""
-    ids = []
-    with db() as conn:
-        for item in items:
-            media_type = item.get("media_type", "")
-            if media_type not in MEDIA_TYPES:
-                continue
-
-            path = item.get("path", "")
-            if not path:
-                continue
-
-            release_name = item.get("release_name") or suggest_release_name(
-                media_type, Path(path)
-            )
-
-            # Validate release_name
-            if release_name and not validate_release_name(str(release_name)):
-                continue
-
-            # Validate category
-            try:
-                category = int(item["category"])
-            except (ValueError, TypeError, KeyError):
-                continue
-
-            if not validate_category(category, media_type, CATEGORY_OPTIONS):
-                continue
-
-            # Sanitize tags
-            tags = sanitize_tags(str(item.get("tags", "")))
-
-            now = now_iso()
-            cur = conn.execute(
-                """
-                INSERT INTO queue (media_type, path, release_name, category, tags, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)
-                """,
-                (media_type, path, release_name, category, tags, now, now),
-            )
-            ids.append(cur.lastrowid)
-        conn.commit()
-    return ids
+# Queue routes are in src/routes_queue.py (split for file size compliance)
+import src.routes_queue  # noqa: F401, E402

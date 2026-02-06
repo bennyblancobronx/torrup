@@ -99,7 +99,7 @@ Returns completed uploads with optional filters.
       "category": 14,
       "tags": "1080p,BluRay",
       "status": "success",
-      "torrent_id": 1234567,
+      "tracker_id": 1234567,
       "created_at": "2026-02-03T14:32:15Z",
       "torrent_path": "/app/output/Movie.Name.2024.torrent",
       "nfo_path": "/app/output/Movie.Name.2024.nfo"
@@ -136,7 +136,7 @@ Returns timestamped activity log.
       "action": "upload_success",
       "queue_id": 42,
       "release_name": "Movie.Name.2024.1080p.BluRay.x264-GROUP",
-      "details": "Torrent ID: 1234567"
+      "details": "Tracker ID: 1234567"
     },
     {
       "id": 2,

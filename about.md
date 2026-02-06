@@ -1,10 +1,10 @@
-# Torrup - Torrent uploader for TorrentLeech
+# Torrup - Torrent Upload Tool
 
 **Version:** 0.1.2
 
 ## What It Is
 
-Torrup is a local-first web UI + CLI for creating and uploading torrents to TorrentLeech. It provides queue-based batch uploads, configurable settings, and a TorrentLeech-compliant upload flow.
+Torrup is a local-first web UI + CLI for creating and uploading torrents. It provides queue-based batch uploads, configurable settings, and support for multiple trackers (initially supporting TorrentLeech).
 
 ## What It Does
 
@@ -12,8 +12,8 @@ Torrup is a local-first web UI + CLI for creating and uploading torrents to Torr
 - Queue multiple items for batch upload
 - Generate NFO files using MediaInfo
 - Create torrents with mktorrent (private flag, source tag)
-- Check for duplicates via TorrentLeech search API
-- Upload to TorrentLeech via API
+- Check for duplicates via tracker search API (supports TorrentLeech)
+- Upload to trackers via API (supports TorrentLeech)
 - Track upload status per item
 - Metadata extraction via exiftool (optional)
 - Thumbnail extraction via ffmpeg (optional)

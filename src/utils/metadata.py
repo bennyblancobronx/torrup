@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -52,35 +53,121 @@ def write_xml_metadata(
 
 
 def extract_metadata(path: Path, media_type: str = "movies") -> dict:
-    """Extract metadata from files using exiftool.
+    """Extract metadata from files using exiftool and NFO parsing.
 
     Returns dict with standardized keys based on media type:
-    - movies/tv: title, year, description
-    - music: artist, album, track, year, genre
+    - movies/tv: title, year, description, imdb, tvmazeid, tvmazetype
+    - music: artist, album, track, year, genre, format, bitrate, channels, source
     - books: title, author, publisher, year
     """
     target = _find_primary_file(path, media_type)
+    result = {}
+
+    # 1. Try NFO parsing first (often more reliable for IDs)
+    if path.is_dir() or path.suffix.lower() == ".nfo":
+        result.update(_extract_ids_from_nfos(path))
+
     if not target or not validate_path_for_subprocess(target):
-        return {}
+        return result
 
     try:
-        result = subprocess.run(
+        exif_result = subprocess.run(
             ["exiftool", "-json", "-n", str(target)],
             capture_output=True,
             text=True,
             timeout=30,
         )
-        if result.returncode != 0:
-            return {}
-
-        data = json.loads(result.stdout)
-        if not data:
-            return {}
-
-        raw = data[0]
-        return _normalize_metadata(raw, media_type)
+        if exif_result.returncode == 0:
+            data = json.loads(exif_result.stdout)
+            if data:
+                raw = data[0]
+                result.update(_normalize_metadata(raw, media_type))
+                
+        # Enhanced Audio Properties
+        if media_type == "music":
+            audio_props = _get_audio_properties(target)
+            result.update(audio_props)
+            
     except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError, json.JSONDecodeError):
-        return {}
+        pass
+        
+    return {k: v for k, v in result.items() if v}
+
+
+def _get_audio_properties(path: Path) -> dict:
+    """Extract detailed audio properties for naming standards."""
+    props = {
+        "format": "MP3", 
+        "bitrate": "320",
+        "channels": "2.0",
+        "source": "WEB" # Default assumption
+    }
+    
+    try:
+        # Get technical metadata
+        cmd = ["exiftool", "-json", "-AudioBitrate", "-SampleRate", "-BitsPerSample", "-FileType", "-Channels", str(path)]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)[0]
+            
+            # Format
+            ft = data.get("FileType", "").upper()
+            props["format"] = ft if ft in ["FLAC", "MP3"] else "MP3"
+            
+            # Bitrate / Quality
+            if props["format"] == "FLAC":
+                bits = data.get("BitsPerSample", 16)
+                props["bitrate"] = "24bit" if int(bits) > 16 else "16bit"
+            else:
+                br = data.get("AudioBitrate", "320000")
+                # Handle "320 kbps" string or raw number
+                if isinstance(br, str):
+                    br = "".join(filter(str.isdigit, br))
+                br_val = int(br) if br else 320000
+                
+                if br_val >= 320000:
+                    props["bitrate"] = "320"
+                elif br_val >= 256000:
+                    props["bitrate"] = "V0"
+                else:
+                    props["bitrate"] = "V2"
+
+            # Channels
+            ch = data.get("Channels", 2)
+            props["channels"] = "2.0" if int(ch) == 2 else "1.0"
+            
+    except Exception:
+        pass
+        
+    return props
+
+def _extract_ids_from_nfos(path: Path) -> dict:
+    """Scan directory for .nfo files and extract IMDB/TVMaze IDs."""
+    ids = {}
+    nfo_files = []
+    if path.is_file() and path.suffix.lower() == ".nfo":
+        nfo_files.append(path)
+    elif path.is_dir():
+        nfo_files.extend(list(path.glob("*.nfo")) + list(path.glob("*.NFO")))
+
+    imdb_pattern = re.compile(r"tt\d{7,9}")
+    tvmaze_pattern = re.compile(r"tvmaze\.com/shows/(\d+)")
+
+    for nfo in nfo_files:
+        try:
+            content = nfo.read_text(errors="ignore")
+            # IMDB
+            imdb_match = imdb_pattern.search(content)
+            if imdb_match and not ids.get("imdb"):
+                ids["imdb"] = imdb_match.group(0)
+            
+            # TVMaze
+            tvmaze_match = tvmaze_pattern.search(content)
+            if tvmaze_match and not ids.get("tvmazeid"):
+                ids["tvmazeid"] = tvmaze_match.group(1)
+        except Exception:
+            continue
+    return ids
 
 
 def _find_primary_file(path: Path, media_type: str) -> Path | None:
@@ -110,6 +197,11 @@ def _normalize_metadata(raw: dict, media_type: str) -> dict:
         result["title"] = raw.get("Title") or raw.get("MovieName") or ""
         result["year"] = raw.get("Year") or raw.get("ContentCreateDate", "")[:4] if raw.get("ContentCreateDate") else ""
         result["description"] = raw.get("Description") or raw.get("Comment") or ""
+        
+        # ID Extraction from tags
+        result["imdb"] = raw.get("IMDB") or raw.get("IMDB_ID") or ""
+        result["tvmazeid"] = raw.get("TVMAZE_ID") or raw.get("TVMazeID") or ""
+        
         # TV specific
         if media_type == "tv":
             result["show"] = raw.get("TVShow") or raw.get("Album") or ""
@@ -220,34 +312,3 @@ def _extract_album_art(audio_path: Path, out_path: Path) -> Path | None:
         pass
 
     return None
-
-
-def extract_all_album_art(path: Path, out_dir: Path, release_name: str) -> list[Path]:
-    """Extract album art from all audio files in a directory.
-
-    Returns list of extracted image paths.
-    """
-    if path.is_file():
-        result = _extract_album_art(path, out_dir / f"{release_name}.jpg")
-        return [result] if result else []
-
-    extracted = []
-    audio_exts = {".flac", ".mp3", ".m4a", ".ogg", ".opus"}
-    seen_albums = set()
-
-    for f in sorted(path.rglob("*")):
-        if f.suffix.lower() not in audio_exts:
-            continue
-
-        # Use parent folder as album identifier to avoid duplicates
-        album_key = str(f.parent)
-        if album_key in seen_albums:
-            continue
-
-        thumb_name = f"{release_name}_{len(extracted) + 1}.jpg"
-        result = _extract_album_art(f, out_dir / thumb_name)
-        if result:
-            extracted.append(result)
-            seen_albums.add(album_key)
-
-    return extracted

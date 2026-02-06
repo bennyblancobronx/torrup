@@ -1,6 +1,6 @@
 # Contributing to Torrup
 
-Thank you for your interest in contributing to Torrup (Torrent uploader for TorrentLeech).
+Thank you for your interest in contributing to Torrup (Torrent Upload Tool).
 
 ## Getting Started
 
