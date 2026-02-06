@@ -5,7 +5,6 @@ Simple web UI for creating and uploading torrents to TorrentLeech.
 from __future__ import annotations
 
 import os
-import shutil
 import sys
 import threading
 from hmac import compare_digest
@@ -35,14 +34,6 @@ if not secret_key:
 app.secret_key = secret_key
 app.config["WTF_CSRF_HEADERS"] = ["X-CSRFToken"]
 csrf = CSRFProtect(app)
-
-# Require core dependencies - fail fast if not installed
-if not shutil.which("mktorrent"):
-    print("ERROR: mktorrent is not installed. Install with: brew install mktorrent (macOS) or apt install mktorrent (Linux)", file=sys.stderr)
-    sys.exit(1)
-if not shutil.which("mediainfo"):
-    print("ERROR: mediainfo is not installed. Install with: brew install mediainfo (macOS) or apt install mediainfo (Linux)", file=sys.stderr)
-    sys.exit(1)
 
 # Initialize rate limiting
 limiter.init_app(app)
