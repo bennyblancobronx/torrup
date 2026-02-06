@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2026-02-06
+
+### Added
+- TL torrent download API: after upload, downloads TL's official .torrent (correct info hash) for seeding
+- Auto-seed flow: upload to TL -> download TL .torrent -> send to qBT -> delete temp local .torrent
+- Fallback: if TL download fails, seeds with local .torrent copy and logs warning
+
+### Changed
+- Simplified qBT settings from 10 to 4: qbt_enabled, qbt_url, qbt_user, qbt_pass
+- Removed qbt_auto_add (now automatic when qbt_enabled is on)
+- Removed qbt_tag (hardcoded as "torrup")
+- Removed qbt_auto_source, qbt_source_categories, qbt_category_map (qBT monitor feature removed)
+- Removed qBT monitor worker thread (was polling qBT for completed downloads to upload)
+- Removed CLI command: torrup qbt monitor
+- Removed category mapping functions (parse_qbt_category_map, map_media_type_to_qbt_category, map_qbt_category_to_media_type)
+- Settings UI: qBT section now just enabled toggle + URL/user/pass + test button
+
+### Docs
+- Updated techguide.md, contracts.md, CLI_REFERENCE.md, GUI docs to reflect simplified qBT integration
+
 ## [0.1.8] - 2026-02-06
 
 ### Added

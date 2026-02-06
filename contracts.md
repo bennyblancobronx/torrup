@@ -9,6 +9,7 @@ External integrations, dependencies, and obligations.
 | Endpoint | URL | Purpose |
 |----------|-----|---------|
 | Upload | `https://www.torrentleech.org/torrents/upload/apiupload` | Upload torrent + NFO |
+| Download | `https://www.torrentleech.org/torrents/upload/apidownload` | Download official .torrent after upload |
 | Search | `https://www.torrentleech.org/api/torrentsearch` | Duplicate check |
 | Tracker | `https://tracker.torrentleech.org` | Announce base URL |
 
@@ -22,7 +23,7 @@ External integrations, dependencies, and obligations.
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| qBitTorrent | Configurable (e.g. `http://localhost:8080`) | Seeding & download monitoring |
+| qBitTorrent | Configurable (e.g. `http://localhost:8080`) | Auto-seeding after upload |
 
 **Authentication:** WebUI credentials or environment variable overrides.
 
@@ -104,7 +105,7 @@ External integrations, dependencies, and obligations.
 **Tables:**
 - `settings` - Key-value configuration (key TEXT PRIMARY KEY, value TEXT)
   - Notable keys: `output_dir`, `exclude_dirs`, `release_group`, `auto_scan_interval`, `enable_auto_upload`, `extract_metadata`, `extract_thumbnails`, `test_mode`
-  - qBT keys: `qbt_enabled`, `qbt_url`, `qbt_user`, `qbt_pass`, `qbt_auto_add`, `qbt_tag`, `qbt_auto_source`, `qbt_source_categories`, `qbt_category_map`
+  - qBT keys: `qbt_enabled`, `qbt_url`, `qbt_user`, `qbt_pass`
   - Activity keys: `tl_min_uploads_per_month`, `tl_min_seed_copies`, `tl_min_seed_days`, `tl_inactivity_warning_weeks`, `tl_absence_notice_weeks`, `tl_enforce_activity`, `tl_last_critical_state`
   - Notification keys: `ntfy_enabled`, `ntfy_url`, `ntfy_topic`
   - Template keys: `template_movies`, `template_tv`, `template_music`, `template_books`

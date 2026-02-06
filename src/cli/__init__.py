@@ -18,7 +18,7 @@ from src.cli.queue import (
     cmd_queue_update,
 )
 from src.cli.settings import cmd_settings_get, cmd_settings_set
-from src.cli.qbt import cmd_qbt_add, cmd_qbt_monitor, cmd_qbt_test
+from src.cli.qbt import cmd_qbt_add, cmd_qbt_test
 from src.cli.upload import (
     cmd_check_dup,
     cmd_prepare,
@@ -171,9 +171,6 @@ def build_parser() -> argparse.ArgumentParser:
     qbt_add.add_argument("--save-path", required=True, help="Path to content data")
     qbt_add.add_argument("--category", help="Optional qBT category")
 
-    qbt_monitor = qbt_sub.add_parser("monitor", help="Monitor qBT for completed downloads")
-    qbt_monitor.add_argument("--once", action="store_true", help="Run one scan and exit")
-
     return parser
 
 
@@ -229,8 +226,6 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_qbt_test(cli)
         elif args.qbt_cmd == "add":
             return cmd_qbt_add(cli)
-        elif args.qbt_cmd == "monitor":
-            return cmd_qbt_monitor(cli)
         parser.parse_args(["qbt", "--help"])
 
     return EXIT_SUCCESS

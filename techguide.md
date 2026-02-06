@@ -8,7 +8,7 @@ How torrup works internally.
 Browser <-> Flask App <-> SQLite DB
                 |
                 v
-         Background Worker + Auto-Scan Worker + qBitTorrent Monitor
+         Background Worker + Auto-Scan Worker
                 |
                 v
     mediainfo + mktorrent + TL API + qBitTorrent API
@@ -50,6 +50,7 @@ SQLite with three tables:
 Tracker integration (currently supports TorrentLeech):
 - `check_exists(release_name, exact=False)` - Search API duplicate check. Pass `exact=True` for strict matching.
 - `upload_torrent(torrent_path, nfo_path, category, tags, imdb=None, tvmazeid=None, tvmazetype=None)` - Upload API with optional external IDs
+- `download_torrent(torrent_id, dest_path)` - Download official .torrent from TL after upload (ensures correct info hash for seeding)
 
 ### Utilities (src/utils/)
 
@@ -123,21 +124,11 @@ Background thread that automatically discovers missing uploads:
 5. Queues missing items automatically with certainty scoring and approval gating
 6. Controlled by `enable_auto_upload` (default off) and `auto_scan_interval` settings
 
-### qBitTorrent Monitor (src/auto_worker.py)
-
-Background thread that monitors qBitTorrent for completed downloads:
-1. Polls qBitTorrent API for torrents with `completed` status (every 2 minutes)
-2. Filters by `qbt_source_categories`
-3. Maps qBT categories to Torrup media types using `qbt_category_map` setting, with case-insensitive fallback heuristics
-4. Automatically adds completed items to the upload queue if not already present
-5. Checks if item exists on tracker before queuing (marks as "duplicate" if found)
-6. Requires both `qbt_enabled` and `qbt_auto_source` to be on
-
 ### qBitTorrent Utility (src/utils/qbittorrent.py)
 
 Helper for qBitTorrent API communication:
 - `get_qbt_client()` - Authenticated client with environment variable overrides (`QBT_URL`, `QBT_USER`, `QBT_PASS`)
-- `add_to_qbt(torrent_path, save_path, category)` - Add torrent to qBT for seeding after upload
+- `add_to_qbt(torrent_path, save_path, category)` - Add torrent to qBT for seeding (tag hardcoded as "torrup")
 
 ### Queue Path Validation
 
@@ -155,11 +146,13 @@ Helper for qBitTorrent API communication:
 4. Duplicate check via tracker API
    - If found: mark as "duplicate", skip
 5. Generate NFO (mediainfo)
-6. Create .torrent (mktorrent)
+6. Create .torrent (mktorrent) -- temp file for upload only
 7. Write XML metadata
 8. Upload to tracker API
    - Success: mark as "success" with torrent ID
    - Failure: mark as "failed" with error
+9. If qBT enabled: download TL's official .torrent (correct hash), send to qBT, delete temp
+10. Fallback: if TL download fails, seed with local .torrent copy
 ```
 
 ## Configuration
@@ -177,12 +170,15 @@ Helper for qBitTorrent API communication:
 |---------|---------|-------------|
 | enable_auto_upload | 0 | Enable automatic scanning and queuing (safety first -- off by default) |
 | auto_scan_interval | 60 | Minutes between auto-scan cycles |
-| qbt_enabled | 0 | Enable qBitTorrent integration |
-| qbt_auto_add | 0 | Auto-add torrent to qBT after successful upload |
-| qbt_auto_source | 0 | Enable monitoring qBT for completed downloads |
-| qbt_source_categories | music,movies,tv | Categories in qBT to monitor for completed downloads |
-| qbt_category_map | (empty) | Custom mapping of media_type=qBTCategory pairs |
-| qbt_tag | torrup | Tag applied to items added to qBT by torrup |
+
+### qBitTorrent Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| qbt_enabled | 0 | Enable qBitTorrent auto-seeding (downloads TL's .torrent and sends to qBT after upload) |
+| qbt_url | http://localhost:8080 | qBitTorrent WebUI URL |
+| qbt_user | admin | qBitTorrent username |
+| qbt_pass | adminadmin | qBitTorrent password |
 
 ### Activity Enforcement Settings
 
@@ -409,9 +405,6 @@ torrup qbt test
 
 # Add a torrent to qBitTorrent
 torrup qbt add --torrent /path/to/file.torrent --save-path /path/to/content [--category CAT]
-
-# Monitor qBT for completed downloads (runs continuously or --once)
-torrup qbt monitor [--once]
 ```
 
 ## Running

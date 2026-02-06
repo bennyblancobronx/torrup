@@ -60,27 +60,3 @@ def cmd_qbt_add(cli) -> int:
     return EXIT_SUCCESS
 
 
-def cmd_qbt_monitor(cli) -> int:
-    """Handle: torrup qbt monitor [--once]."""
-    once = getattr(cli.args, "once", False)
-
-    with db() as conn:
-        enabled = get_setting(conn, "qbt_enabled") == "1"
-        auto_source = get_setting(conn, "qbt_auto_source") == "1"
-        if not enabled or not auto_source:
-            return cli.error("qBT auto-source is disabled (qbt_enabled/qbt_auto_source).", EXIT_INVALID_ARGS)
-
-    if once:
-        from src.auto_worker import qbt_monitor_once
-        added = qbt_monitor_once()
-        cli.output({"queued": added}, f"Queued {added} item(s) from qBT.")
-        return EXIT_SUCCESS
-
-    # Continuous monitor: run the worker loop.
-    from src.auto_worker import qbt_monitor_worker
-
-    try:
-        qbt_monitor_worker()
-    except KeyboardInterrupt:
-        return EXIT_SUCCESS
-    return EXIT_SUCCESS

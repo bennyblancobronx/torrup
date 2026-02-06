@@ -133,11 +133,6 @@ def init_db() -> None:
         _ensure_setting(conn, "qbt_url", QBT_DEFAULT_URL)
         _ensure_setting(conn, "qbt_user", QBT_DEFAULT_USER)
         _ensure_setting(conn, "qbt_pass", QBT_DEFAULT_PASS)
-        _ensure_setting(conn, "qbt_auto_add", "0")  # Auto add to qBT after upload
-        _ensure_setting(conn, "qbt_tag", "torrup")  # Tag for items added by torrup
-        _ensure_setting(conn, "qbt_auto_source", "0")  # Monitor qBT for completed downloads to upload
-        _ensure_setting(conn, "qbt_source_categories", "music,movies,tv") # Categories to monitor in qBT
-        _ensure_setting(conn, "qbt_category_map", "")  # Optional map: media_type=qBTCategory
 
         # TorrentLeech Preferences (Activity + Seeding Minimums)
         _ensure_setting(conn, "tl_min_uploads_per_month", "10")

@@ -393,14 +393,9 @@ Update application settings. Only provided fields are updated.
   "enable_auto_upload": "0",
   "auto_scan_interval": "60",
   "qbt_enabled": "0",
-  "qbt_auto_add": "0",
-  "qbt_tag": "torrup",
   "qbt_url": "http://localhost:8080",
   "qbt_user": "admin",
   "qbt_pass": "adminadmin",
-  "qbt_auto_source": "0",
-  "qbt_source_categories": "music,movies,tv",
-  "qbt_category_map": "",
   "tl_min_uploads_per_month": "10",
   "tl_min_seed_copies": "10",
   "tl_min_seed_days": "7",
@@ -433,7 +428,7 @@ Update application settings. Only provided fields are updated.
 | General | `output_dir`, `exclude_dirs`, `release_group` |
 | Automation | `test_mode`, `enable_auto_upload`, `auto_scan_interval` |
 | Metadata | `extract_metadata`, `extract_thumbnails` |
-| qBitTorrent | `qbt_enabled`, `qbt_url`, `qbt_user`, `qbt_pass`, `qbt_auto_add`, `qbt_tag`, `qbt_auto_source`, `qbt_source_categories`, `qbt_category_map` |
+| qBitTorrent | `qbt_enabled`, `qbt_url`, `qbt_user`, `qbt_pass` |
 | TorrentLeech | `tl_min_uploads_per_month`, `tl_min_seed_copies`, `tl_min_seed_days`, `tl_inactivity_warning_weeks`, `tl_absence_notice_weeks`, `tl_enforce_activity` |
 | Notifications | `ntfy_enabled`, `ntfy_url`, `ntfy_topic` |
 | Media Roots | `media_roots` array (per media type: path, enabled, default_category, auto_scan) |

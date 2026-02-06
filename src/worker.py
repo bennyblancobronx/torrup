@@ -8,7 +8,7 @@ import time
 import traceback
 from pathlib import Path
 
-from src.api import check_exists, upload_torrent
+from src.api import check_exists, download_torrent, upload_torrent
 from src.db import db, get_output_dir, get_setting
 from src.logger import logger
 from src.utils import (
@@ -21,7 +21,7 @@ from src.utils import (
     sanitize_release_name,
     write_xml_metadata,
 )
-from src.utils.qbittorrent import add_to_qbt, map_media_type_to_qbt_category
+from src.utils.qbittorrent import add_to_qbt
 
 
 def sanitize_error_message(error: Exception) -> str:
@@ -148,15 +148,29 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
             tvmazetype=tvmazetype
         )
         if result.get("success"):
-            logger.info(f"Item {item_id}: Upload successful - torrent_id={result['torrent_id']}")
-            update_queue_status(conn, item_id, "success", f"Uploaded: {result['torrent_id']}")
+            tid = result["torrent_id"]
+            logger.info(f"Item {item_id}: Upload successful - torrent_id={tid}")
+            update_queue_status(conn, item_id, "success", f"Uploaded: {tid}")
 
-            # Auto-add to qBitTorrent if enabled
-            if get_setting(conn, "qbt_auto_add") == "1":
-                # We can map media_type to qBT category
-                category_map = get_setting(conn, "qbt_category_map") or ""
-                qbt_category = map_media_type_to_qbt_category(media_type, category_map)
-                add_to_qbt(torrent_path, path, category=qbt_category)
+            # Auto-seed via qBitTorrent: download TL's official .torrent
+            # (hash may differ from local mktorrent output) and feed to qBT.
+            if get_setting(conn, "qbt_enabled") == "1":
+                tl_torrent = out_dir / f"{release_name}.tl.torrent"
+                if download_torrent(tid, tl_torrent):
+                    add_to_qbt(tl_torrent, path)
+                    # Clean up temp local .torrent (mktorrent output)
+                    try:
+                        Path(torrent_path).unlink(missing_ok=True)
+                    except OSError as e:
+                        logger.warning(f"Item {item_id}: Could not remove temp torrent: {e}")
+                    # Update DB to point at TL's .torrent
+                    conn.execute(
+                        "UPDATE queue SET torrent_path = ?, updated_at = ? WHERE id = ?",
+                        (str(tl_torrent), now_iso(), item_id),
+                    )
+                else:
+                    logger.warning(f"Item {item_id}: TL torrent download failed, seeding with local copy")
+                    add_to_qbt(torrent_path, path)
         else:
             logger.warning(f"Item {item_id}: Upload failed - {result.get('error')}")
             update_queue_status(conn, item_id, "failed", f"Upload failed: {result.get('error')}")

@@ -345,8 +345,7 @@ Note: There is no dedicated `/api/history` or `/api/activity` endpoint. The hist
 |                                                                      |
 |  +------------------------------------------------------------------+
 |  | QBITTORRENT INTEGRATION                                         |
-|  |  [x] Enable qBitTorrent    [x] Auto-Add to qBT    qBT Tag: []  |
-|  |  [x] Auto-Source from qBT  Source Categories: []  Category Map:[]|
+|  |  [x] Enable qBitTorrent (auto-seed after upload)                |
 |  |  qBT URL: []    Username: []    Password: [****]                 |
 |  |  [Test Connection]                                               |
 |  +------------------------------------------------------------------+
@@ -385,7 +384,7 @@ Note: There is no dedicated `/api/history` or `/api/activity` endpoint. The hist
 | **Automation (Beta)** | test_mode, enable_auto_upload, auto_scan_interval |
 | **Media Roots + Defaults** | Per-type: enabled, auto_scan, path (with browse picker), default_category |
 | **Metadata Extraction** | extract_metadata, extract_thumbnails |
-| **qBitTorrent Integration** | qbt_enabled, qbt_auto_add, qbt_tag, qbt_auto_source, qbt_source_categories, qbt_category_map, qbt_url, qbt_user, qbt_pass, test connection button |
+| **qBitTorrent Integration** | qbt_enabled, qbt_url, qbt_user, qbt_pass, test connection button |
 | **Naming Templates** | Per-type: template pattern string |
 | **TorrentLeech Preferences** | tl_min_uploads_per_month, tl_min_seed_copies, tl_min_seed_days, tl_inactivity_warning_weeks, tl_absence_notice_weeks, tl_enforce_activity |
 | **Push Notifications (ntfy)** | ntfy_enabled, ntfy_url, ntfy_topic |

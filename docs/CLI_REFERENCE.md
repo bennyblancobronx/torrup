@@ -67,15 +67,10 @@ torrup settings get --json
 | `output_dir` | string | Output directory for torrents/NFOs |
 | `exclude_dirs` | string | Comma-separated folders to exclude |
 | `templates` | object | Naming templates per media type |
-| `qbt_enabled` | string | Enable qBitTorrent (1/0) |
+| `qbt_enabled` | string | Enable qBitTorrent auto-seeding (1/0) |
 | `qbt_url` | string | qBitTorrent WebUI URL |
 | `qbt_user` | string | qBitTorrent username |
 | `qbt_pass` | string | qBitTorrent password |
-| `qbt_auto_add` | string | Auto-add to qBT after upload (1/0) |
-| `qbt_auto_source` | string | Monitor qBT for completed downloads (1/0) |
-| `qbt_tag` | string | Tag for Torrup-added torrents |
-| `qbt_source_categories` | string | Categories to monitor (comma-separated) |
-| `qbt_category_map` | string | Optional map of media_type to qBT category (CSV or JSON) |
 
 **Examples:**
 
@@ -170,27 +165,6 @@ torrup qbt add --torrent /path/file.torrent --save-path /path/content --category
 - 0: Success
 - 2: Invalid args or qBT disabled
 - 5: API or connection error
-
----
-
-### torrup qbt monitor
-
-Monitor qBitTorrent for completed downloads and add to queue.
-
-```bash
-# Run one scan and exit
-torrup qbt monitor --once
-```
-
-**Flags:**
-
-| Flag | Description |
-|------|-------------|
-| `--once` | Run a single scan and exit |
-
-**Exit Codes:**
-- 0: Success
-- 2: qBT auto-source disabled
 
 ---
 
@@ -913,5 +887,4 @@ torrup queue run
 | `torrup scan` | Implemented | v0.1.2 (music only) |
 | `torrup qbt test` | Implemented | v0.1.4 |
 | `torrup qbt add` | Implemented | v0.1.4 |
-| `torrup qbt monitor` | Implemented | v0.1.4 |
 | `torrup activity` | Implemented | v0.1.8 |

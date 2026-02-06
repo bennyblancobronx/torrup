@@ -188,3 +188,85 @@ class TestUploadTorrent:
         assert call_kwargs[1]["data"]["tags"] == "rock,indie"
         assert "torrent" in call_kwargs[1]["files"]
         assert "nfo" in call_kwargs[1]["files"]
+
+
+class TestDownloadTorrent:
+    """Tests for download_torrent function."""
+
+    @patch("src.api.ANNOUNCE_KEY", "test-key-123")
+    @patch("src.api.httpx.post")
+    def test_download_torrent_success(self, mock_post, tmp_path):
+        """Verify download_torrent saves file on valid response."""
+        from src.api import download_torrent
+
+        # Bencoded torrent starts with 'd', needs to be > 50 bytes
+        fake_torrent = b"d8:announce40:https://tracker.example.com/a/key/announce4:infod6:lengthi1024eee"
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = fake_torrent
+        mock_post.return_value = mock_response
+
+        dest = tmp_path / "downloaded.torrent"
+        result = download_torrent(12345, dest)
+
+        assert result is True
+        assert dest.exists()
+        assert dest.read_bytes() == fake_torrent
+        call_data = mock_post.call_args[1]["data"]
+        assert call_data["torrentID"] == "12345"
+        assert call_data["announcekey"] == "test-key-123"
+
+    @patch("src.api.ANNOUNCE_KEY", "test-key-123")
+    @patch("src.api.httpx.post")
+    def test_download_torrent_http_error(self, mock_post, tmp_path):
+        """Verify download_torrent returns False on HTTP error."""
+        from src.api import download_torrent
+
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_post.return_value = mock_response
+
+        dest = tmp_path / "fail.torrent"
+        result = download_torrent(99999, dest)
+
+        assert result is False
+        assert not dest.exists()
+
+    @patch("src.api.ANNOUNCE_KEY", "test-key-123")
+    @patch("src.api.httpx.post")
+    def test_download_torrent_invalid_content(self, mock_post, tmp_path):
+        """Verify download_torrent rejects non-torrent response."""
+        from src.api import download_torrent
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = b"Error: not found"
+        mock_post.return_value = mock_response
+
+        dest = tmp_path / "bad.torrent"
+        result = download_torrent(12345, dest)
+
+        assert result is False
+
+    @patch("src.api.ANNOUNCE_KEY", "")
+    def test_download_torrent_no_key(self, tmp_path):
+        """Verify download_torrent returns False when no API key."""
+        from src.api import download_torrent
+
+        dest = tmp_path / "nokey.torrent"
+        result = download_torrent(12345, dest)
+
+        assert result is False
+
+    @patch("src.api.ANNOUNCE_KEY", "test-key-123")
+    @patch("src.api.httpx.post")
+    def test_download_torrent_network_error(self, mock_post, tmp_path):
+        """Verify download_torrent handles network exceptions."""
+        from src.api import download_torrent
+
+        mock_post.side_effect = Exception("Connection refused")
+
+        dest = tmp_path / "err.torrent"
+        result = download_torrent(12345, dest)
+
+        assert result is False

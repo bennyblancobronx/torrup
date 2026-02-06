@@ -8,6 +8,9 @@ from typing import Any
 import httpx
 
 from src.config import ANNOUNCE_KEY, TL_SEARCH_URL, TL_UPLOAD_URL
+from src.logger import logger
+
+TL_DOWNLOAD_URL = "https://www.torrentleech.org/torrents/upload/apidownload"
 
 
 def check_exists(release_name: str, exact: bool = True) -> bool:
@@ -72,3 +75,50 @@ def upload_torrent(
         return {"success": True, "torrent_id": torrent_id}
     except ValueError:
         return {"success": False, "error": response.text}
+
+
+def download_torrent(torrent_id: int, dest_path: Path) -> bool:
+    """Download the official .torrent file from TorrentLeech.
+
+    After uploading, TL may modify the torrent (announce URL, info dict).
+    This downloads TL's version so the info hash matches what peers expect.
+
+    Args:
+        torrent_id: The torrent ID returned by upload_torrent.
+        dest_path: Where to save the downloaded .torrent file.
+
+    Returns:
+        True if downloaded successfully, False otherwise.
+    """
+    if not ANNOUNCE_KEY:
+        logger.error("TL_ANNOUNCE_KEY not configured for torrent download")
+        return False
+
+    try:
+        response = httpx.post(
+            TL_DOWNLOAD_URL,
+            data={
+                "announcekey": ANNOUNCE_KEY,
+                "torrentID": str(torrent_id),
+            },
+            timeout=30,
+        )
+
+        if response.status_code != 200:
+            logger.error(f"TL download failed: HTTP {response.status_code}")
+            return False
+
+        # Sanity check: response should be bencoded torrent data, not an error string
+        content = response.content
+        if len(content) < 50 or not content.startswith(b"d"):
+            logger.error(f"TL download returned invalid data (len={len(content)})")
+            return False
+
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        dest_path.write_bytes(content)
+        logger.info(f"Downloaded TL torrent {torrent_id} -> {dest_path.name}")
+        return True
+
+    except Exception as e:
+        logger.error(f"TL torrent download error: {e}")
+        return False

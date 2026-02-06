@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import json
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -23,55 +22,6 @@ def _normalize_qbt_url(url: str) -> str | None:
     if not parsed.scheme or not parsed.netloc:
         return None
     return url
-
-
-def parse_qbt_category_map(value: str | None) -> dict[str, str]:
-    """Parse qBT category mapping from JSON or CSV.
-
-    Supported formats:
-    - JSON: {"movies": "Movies-HD", "music": "Music"}
-    - CSV: movies=Movies-HD,music=Music
-    """
-    raw = (value or "").strip()
-    if not raw:
-        return {}
-
-    if raw.startswith("{"):
-        try:
-            data = json.loads(raw)
-            if isinstance(data, dict):
-                return {str(k).strip(): str(v).strip() for k, v in data.items() if str(k).strip()}
-        except json.JSONDecodeError:
-            logger.warning("Invalid qBT category map JSON; falling back to CSV parsing.")
-
-    mapping: dict[str, str] = {}
-    for pair in raw.split(","):
-        if "=" not in pair:
-            continue
-        key, val = pair.split("=", 1)
-        key = key.strip()
-        val = val.strip()
-        if key:
-            mapping[key] = val
-    return mapping
-
-
-def map_media_type_to_qbt_category(media_type: str, mapping_value: str | None) -> str:
-    mapping = parse_qbt_category_map(mapping_value)
-    return mapping.get(media_type, media_type)
-
-
-def map_qbt_category_to_media_type(qbt_category: str, mapping_value: str | None) -> str | None:
-    mapping = parse_qbt_category_map(mapping_value)
-    if not mapping:
-        return None
-    target = (qbt_category or "").strip().lower()
-    if not target:
-        return None
-    for media_type, cat in mapping.items():
-        if cat.strip().lower() == target:
-            return media_type
-    return None
 
 
 def get_qbt_client():
@@ -125,25 +75,17 @@ def add_to_qbt(
     if not client:
         return False
 
-    with db() as conn:
-        tag = get_setting(conn, "qbt_tag") or "torrup"
-
     try:
         torrent_path = Path(torrent_path)
         if not torrent_path.exists():
             logger.error(f"Torrent file not found for qBT: {torrent_path}")
             return False
 
-        # qBitTorrent expects the parent directory of the content for 'save_path'
-        # if the torrent is a multi-file torrent (directory).
-        # However, for 'torrup', we are usually creating torrents where the
-        # root is the file or directory we selected.
-
         res = client.torrents_add(
             torrent_files=open(torrent_path, "rb"),
             save_path=str(Path(save_path).parent),
             category=category,
-            tags=tag,
+            tags="torrup",
             is_paused=False,
             use_auto_torrent_management=False,
         )

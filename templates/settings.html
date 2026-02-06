@@ -170,44 +170,14 @@
             <input type="checkbox" id="qbt_enabled" {% if settings.get('qbt_enabled', '0') == '1' %}checked{% endif %} />
             Enable qBitTorrent
           </label>
-          <div class="form-hint">Allow torrup to communicate with qBitTorrent.</div>
+          <div class="form-hint">Auto-seed uploads via qBitTorrent after successful TL upload.</div>
         </div>
-        <div class="form-group">
-          <label class="checkbox-field">
-            <input type="checkbox" id="qbt_auto_add" {% if settings.get('qbt_auto_add', '0') == '1' %}checked{% endif %} />
-            Auto-Add to qBT
-          </label>
-          <div class="form-hint">Automatically add torrent to qBitTorrent after successful upload.</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">qBT Tag</label>
-          <input id="qbt_tag" value="{{ settings.get('qbt_tag', 'torrup') }}" />
-        </div>
-      </div>
-      <div class="grid grid-cols-3 gap-6">
-        <div class="form-group">
-          <label class="checkbox-field">
-            <input type="checkbox" id="qbt_auto_source" {% if settings.get('qbt_auto_source', '0') == '1' %}checked{% endif %} />
-            Auto-Source from qBT
-          </label>
-          <div class="form-hint">Monitor qBitTorrent for completed downloads and add to queue.</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Source Categories</label>
-          <input id="qbt_source_categories" value="{{ settings.get('qbt_source_categories', 'music,movies,tv') }}" />
-          <div class="form-hint">Comma-separated categories to monitor (e.g. music,movies,tv).</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Category Map</label>
-          <input id="qbt_category_map" value="{{ settings.get('qbt_category_map', '') }}" placeholder="movies=Movies-HD,music=Music" />
-          <div class="form-hint">Optional map: media_type=qBTCategory (CSV or JSON).</div>
-        </div>
-      </div>
-      <div class="grid grid-cols-3 gap-6">
         <div class="form-group">
           <label class="form-label">qBT URL</label>
           <input id="qbt_url" value="{{ settings.get('qbt_url', 'http://localhost:8080') }}" />
         </div>
+      </div>
+      <div class="grid grid-cols-3 gap-6">
         <div class="form-group">
           <label class="form-label">Username</label>
           <input id="qbt_user" value="{{ settings.get('qbt_user', 'admin') }}" />
