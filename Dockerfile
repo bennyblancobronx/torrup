@@ -41,7 +41,7 @@ CMD ["gunicorn", \
      "--bind", "0.0.0.0:5001", \
      "--workers", "1", \
      "--worker-class", "gthread", \
-     "--threads", "4", \
+     "--threads", "8", \
      "--timeout", "180", \
      "--access-logfile", "-", \
      "app:app"]

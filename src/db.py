@@ -3,12 +3,8 @@
 from __future__ import annotations
 
 import sqlite3
-import threading
 from contextlib import contextmanager
 from pathlib import Path
-
-# Reentrant thread lock for SQLite operations (allows nested db() calls)
-_db_lock = threading.RLock()
 
 from src.config import (
     CATEGORY_OPTIONS,
@@ -26,19 +22,19 @@ from src.config import (
 
 @contextmanager
 def db():
-    """Database connection context manager with thread safety."""
-    with _db_lock:
-        conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
+    """Database connection context manager. WAL mode allows concurrent reads."""
+    conn = sqlite3.connect(DB_PATH, timeout=10, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
@@ -143,6 +139,7 @@ def init_db() -> None:
         _ensure_setting(conn, "qbt_tag", "Torrup")  # Tag for items added by Torrup
         _ensure_setting(conn, "qbt_auto_source", "0")  # Monitor qBT for completed downloads to upload
         _ensure_setting(conn, "qbt_source_categories", "music,movies,tv") # Categories to monitor in qBT
+        _ensure_setting(conn, "qbt_category_map", "")  # Optional map: media_type=qBTCategory
 
         conn.commit()
 
