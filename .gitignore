@@ -49,6 +49,7 @@ logs/
 *.log
 output/
 torrup.db
+torrup.db-*
 
 # Secrets
 .env
