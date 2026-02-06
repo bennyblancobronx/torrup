@@ -31,7 +31,7 @@ def cmd_scan(cli) -> int:
     if media_type == "music":
         return _scan_music(cli, root_path, dry_run)
     
-    return cli.error("Only music scanning is currently supported in this version.")
+    return cli.error("Scanning for this media type is not supported in this version.")
 
 
 def _scan_music(cli, artists_dir: Path, dry_run: bool) -> int:

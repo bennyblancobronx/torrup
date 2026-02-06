@@ -62,7 +62,7 @@ class CLI:
 
 def build_parser() -> argparse.ArgumentParser:
     """Build argument parser with all subcommands."""
-    parser = argparse.ArgumentParser(prog="torrup", description="Torrup - Torrent uploader for TorrentLeech")
+    parser = argparse.ArgumentParser(prog="torrup", description="Torrup - Torrent Upload Tool")
     parser.add_argument("--version", "-v", action="version", version=f"torrup {APP_VERSION}")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress non-essential output")
