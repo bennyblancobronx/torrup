@@ -170,7 +170,7 @@ def update_settings() -> tuple[Any, int]:
     data = request.json or {}
     with db() as conn:
         # Basic settings
-        for key in ["browse_base", "output_dir", "exclude_dirs", "release_group", "extract_metadata", "extract_thumbnails", "auto_scan_interval", "enable_auto_upload"]:
+        for key in ["browse_base", "output_dir", "exclude_dirs", "release_group", "extract_metadata", "extract_thumbnails", "auto_scan_interval", "enable_auto_upload", "test_mode", "qbt_enabled", "qbt_url", "qbt_user", "qbt_pass", "qbt_auto_add", "qbt_tag"]:
             if key in data:
                 set_setting(conn, key, str(data[key]))
 
@@ -202,6 +202,22 @@ def update_settings() -> tuple[Any, int]:
         conn.commit()
 
     return jsonify({"success": True}), 200
+
+
+@bp.route("/api/settings/qbt/test", methods=["POST"])
+@limiter.limit("5 per minute")
+def test_qbt_connection():
+    """Test connection to qBitTorrent."""
+    from src.utils.qbittorrent import get_qbt_client
+    try:
+        client = get_qbt_client()
+        if client:
+            version = client.app.version
+            return jsonify({"success": True, "version": version}), 200
+        else:
+            return jsonify({"success": False, "error": "Failed to connect. Check logs or settings."}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @bp.route("/api/browse")

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-02-06
+
+### Added
+- **qBitTorrent Integration**:
+    - Auto-seed: Automatically add uploaded torrents to qBitTorrent for seeding.
+    - Auto-source: Monitor qBitTorrent completed downloads to auto-queue for upload.
+    - Security: Support for `QBT_USER`, `QBT_PASS`, and `QBT_URL` environment variable overrides.
+    - UI: "Test Connection" button and full settings management in the Web UI.
+- **Worker Enhancements**:
+    - `qbt_monitor_worker` for background qBitTorrent polling.
+    - Case-insensitive category matching for automated workflows.
+- **Tests**: New test suite for qBitTorrent utility functions (`tests/test_qbittorrent.py`).
+
 ## [0.1.4] - 2026-02-06
 
 ### Added

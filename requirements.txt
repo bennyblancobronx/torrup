@@ -3,3 +3,4 @@ Flask-Limiter==3.5.0
 httpx==0.27.0
 gunicorn==21.2.0
 Flask-WTF==1.2.1
+qbittorrent-api==2025.11.1

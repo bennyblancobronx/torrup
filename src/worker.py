@@ -21,6 +21,7 @@ from src.utils import (
     sanitize_release_name,
     write_xml_metadata,
 )
+from src.utils.qbittorrent import add_to_qbt
 
 
 def sanitize_error_message(error: Exception) -> str:
@@ -64,9 +65,11 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
         update_queue_status(conn, item_id, "failed", "Path not found")
         return
 
+    test_mode = get_setting(conn, "test_mode") == "1"
+
     update_queue_status(conn, item_id, "preparing", "Generating NFO + torrent")
 
-    if check_exists(release_name):
+    if not test_mode and check_exists(release_name):
         update_queue_status(conn, item_id, "duplicate", "Exact match found on TorrentLeech")
         return
 
@@ -113,6 +116,11 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
         update_queue_status(conn, item_id, "failed", f"Prepare failed: {sanitize_error_message(e)}")
         return
 
+    if test_mode:
+        logger.info(f"Item {item_id}: Test mode - skipping upload")
+        update_queue_status(conn, item_id, "success", "Test mode - upload skipped")
+        return
+
     update_queue_status(conn, item_id, "uploading", "Uploading to TorrentLeech")
 
     try:
@@ -131,9 +139,9 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
             tvmazetype = None
 
         result = upload_torrent(
-            Path(torrent_path), 
-            Path(nfo_path), 
-            category, 
+            Path(torrent_path),
+            Path(nfo_path),
+            category,
             tags,
             imdb=imdb,
             tvmazeid=tvmazeid,
@@ -142,6 +150,12 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
         if result.get("success"):
             logger.info(f"Item {item_id}: Upload successful - torrent_id={result['torrent_id']}")
             update_queue_status(conn, item_id, "success", f"Uploaded: {result['torrent_id']}")
+
+            # Auto-add to qBitTorrent if enabled
+            if get_setting(conn, "qbt_auto_add") == "1":
+                # We can map media_type to qBT category
+                qbt_category = media_type
+                add_to_qbt(torrent_path, path, category=qbt_category)
         else:
             logger.warning(f"Item {item_id}: Upload failed - {result.get('error')}")
             update_queue_status(conn, item_id, "failed", f"Upload failed: {result.get('error')}")

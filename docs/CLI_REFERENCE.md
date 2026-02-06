@@ -69,6 +69,14 @@ torrup settings get --json
 | `templates` | object | Naming templates per media type |
 | `qbt_content_dir` | string | qBittorrent content folder |
 | `qbt_watch_dirs` | object | Watch folders per media type |
+| `qbt_enabled` | string | Enable qBitTorrent (1/0) |
+| `qbt_url` | string | qBitTorrent WebUI URL |
+| `qbt_user` | string | qBitTorrent username |
+| `qbt_pass` | string | qBitTorrent password |
+| `qbt_auto_add` | string | Auto-add to qBT after upload (1/0) |
+| `qbt_auto_source` | string | Monitor qBT for completed downloads (1/0) |
+| `qbt_tag` | string | Tag for Torrup-added torrents |
+| `qbt_source_categories` | string | Categories to monitor (comma-separated) |
 
 **Examples:**
 

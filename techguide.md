@@ -8,10 +8,10 @@ How Torrup works internally.
 Browser <-> Flask App <-> SQLite DB
                 |
                 v
-         Background Worker + Auto-Scan Worker
+         Background Worker + Auto-Scan Worker + qBitTorrent Monitor
                 |
                 v
-    mediainfo + mktorrent + TL API
+    mediainfo + mktorrent + TL API + qBitTorrent API
 ```
 
 ## Core Components
@@ -93,6 +93,21 @@ Background thread that automatically discovers missing uploads:
 3. Queues missing items automatically
 4. Controlled by `enable_auto_upload` (default off) and `auto_scan_interval` settings
 
+### qBitTorrent Monitor (src/auto_worker.py)
+
+Background thread that monitors qBitTorrent for completed downloads:
+1. Polls qBitTorrent API for torrents with `completed` status
+2. Filters by `qbt_source_categories`
+3. Maps qBT categories to Torrup media types (case-insensitive)
+4. Automatically adds completed items to the upload queue if not already present
+5. Checks if item exists on tracker before queuing (marks as "duplicate" if found)
+
+### qBitTorrent Utility (src/utils/qbittorrent.py)
+
+Helper for qBitTorrent API communication:
+- `get_qbt_client()` - Authenticated client with environment variable overrides (`QBT_URL`, `QBT_USER`, `QBT_PASS`)
+- `add_to_qbt(torrent_path, save_path, category)` - Add torrent to qBT for seeding after upload
+
 ### Queue Path Validation
 
 `/api/queue/add` accepts only paths that:
@@ -131,6 +146,10 @@ Background thread that automatically discovers missing uploads:
 |---------|---------|-------------|
 | enable_auto_upload | 0 | Enable automatic scanning and queuing (safety first -- off by default) |
 | auto_scan_interval | 60 | Minutes between auto-scan cycles |
+| qbt_enabled | 0 | Enable qBitTorrent integration |
+| qbt_auto_add | 0 | Auto-add torrent to qBT after successful upload |
+| qbt_auto_source | 0 | Enable monitoring qBT for completed downloads |
+| qbt_source_categories | music,movies,tv | Categories in qBT to monitor for completed downloads |
 
 ### Category Defaults
 

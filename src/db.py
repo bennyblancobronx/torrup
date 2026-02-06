@@ -18,6 +18,9 @@ from src.config import (
     DEFAULT_RELEASE_GROUP,
     DEFAULT_TEMPLATES,
     MEDIA_TYPES,
+    QBT_DEFAULT_PASS,
+    QBT_DEFAULT_URL,
+    QBT_DEFAULT_USER,
 )
 
 
@@ -130,6 +133,16 @@ def init_db() -> None:
         _ensure_setting(conn, "release_group", DEFAULT_RELEASE_GROUP)
         _ensure_setting(conn, "extract_metadata", "1")
         _ensure_setting(conn, "extract_thumbnails", "1")
+
+        # qBitTorrent Settings
+        _ensure_setting(conn, "qbt_enabled", "0")
+        _ensure_setting(conn, "qbt_url", QBT_DEFAULT_URL)
+        _ensure_setting(conn, "qbt_user", QBT_DEFAULT_USER)
+        _ensure_setting(conn, "qbt_pass", QBT_DEFAULT_PASS)
+        _ensure_setting(conn, "qbt_auto_add", "0")  # Auto add to qBT after upload
+        _ensure_setting(conn, "qbt_tag", "Torrup")  # Tag for items added by Torrup
+        _ensure_setting(conn, "qbt_auto_source", "0")  # Monitor qBT for completed downloads to upload
+        _ensure_setting(conn, "qbt_source_categories", "music,movies,tv") # Categories to monitor in qBT
 
         conn.commit()
 

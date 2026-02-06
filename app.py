@@ -23,7 +23,7 @@ AUTH_PASS = os.environ.get("TORRUP_AUTH_PASS")
 from src.db import init_db
 from src.routes import bp
 from src.worker import queue_worker
-from src.auto_worker import auto_scan_worker
+from src.auto_worker import auto_scan_worker, qbt_monitor_worker
 
 app = Flask(__name__)
 
@@ -92,6 +92,10 @@ if RUN_WORKER:
     t2 = threading.Thread(target=auto_scan_worker, args=(shutdown_event,), daemon=True)
     t2.start()
     logger.info("Background auto-scan worker thread started")
+
+    t3 = threading.Thread(target=qbt_monitor_worker, args=(shutdown_event,), daemon=True)
+    t3.start()
+    logger.info("Background qBitTorrent monitor worker thread started")
 
 if __name__ == "__main__":
     logger.info("Starting Torrup application on port 5001")

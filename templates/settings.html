@@ -109,6 +109,15 @@
         <div class="col">
           <div class="field">
             <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="test_mode" style="width: auto;" {% if settings.get('test_mode', '0') == '1' %}checked{% endif %} />
+              Test Mode (Dry Run)
+            </label>
+            <div class="muted">Generate NFO + torrent but skip the actual upload to TorrentLeech.</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label style="display: flex; align-items: center; gap: 8px;">
               <input type="checkbox" id="enable_auto_upload" style="width: auto;" {% if settings.get('enable_auto_upload', '0') == '1' %}checked{% endif %} />
               Enable Auto-Scan + Upload
             </label>
@@ -182,6 +191,62 @@
     </div>
 
     <div class="panel">
+      <h2>qBitTorrent Integration</h2>
+      <div class="row">
+        <div class="col">
+          <div class="field">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="qbt_enabled" style="width: auto;" {% if settings.get('qbt_enabled', '0') == '1' %}checked{% endif %} />
+              Enable qBitTorrent
+            </label>
+            <div class="muted">Allow Torrup to communicate with qBitTorrent.</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="qbt_auto_add" style="width: auto;" {% if settings.get('qbt_auto_add', '0') == '1' %}checked{% endif %} />
+              Auto-Add to qBT
+            </label>
+            <div class="muted">Automatically add torrent to qBitTorrent after successful upload.</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label>qBT Tag</label>
+            <input id="qbt_tag" value="{{ settings.get('qbt_tag', 'Torrup') }}" />
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <div class="field">
+            <label>qBT URL</label>
+            <input id="qbt_url" value="{{ settings.get('qbt_url', 'http://localhost:8080') }}" />
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label>Username</label>
+            <input id="qbt_user" value="{{ settings.get('qbt_user', 'admin') }}" />
+          </div>
+        </div>
+        <div class="col">
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="qbt_pass" value="{{ settings.get('qbt_pass', 'adminadmin') }}" />
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <button id="test-qbt" style="width: auto;">Test Connection</button>
+          <span id="qbt-test-status" class="muted" style="margin-left: 10px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2>Naming Templates</h2>
       <div class="row">
         {% for key, tpl in templates.items() %}
@@ -217,10 +282,17 @@
         output_dir: document.getElementById('output_dir').value,
         release_group: document.getElementById('release_group').value,
         exclude_dirs: document.getElementById('exclude_dirs').value,
+        test_mode: document.getElementById('test_mode').checked ? '1' : '0',
         extract_metadata: document.getElementById('extract_metadata').checked ? '1' : '0',
         extract_thumbnails: document.getElementById('extract_thumbnails').checked ? '1' : '0',
         enable_auto_upload: document.getElementById('enable_auto_upload').checked ? '1' : '0',
         auto_scan_interval: document.getElementById('auto_scan_interval').value,
+        qbt_enabled: document.getElementById('qbt_enabled').checked ? '1' : '0',
+        qbt_auto_add: document.getElementById('qbt_auto_add').checked ? '1' : '0',
+        qbt_tag: document.getElementById('qbt_tag').value,
+        qbt_url: document.getElementById('qbt_url').value,
+        qbt_user: document.getElementById('qbt_user').value,
+        qbt_pass: document.getElementById('qbt_pass').value,
         media_roots: [],
         templates: {},
       };
@@ -249,6 +321,22 @@
     }
 
     document.getElementById('save').onclick = saveSettings;
+
+    // Test qBT Connection
+    document.getElementById('test-qbt').onclick = async () => {
+      const status = document.getElementById('qbt-test-status');
+      status.textContent = 'Testing...';
+      try {
+        const res = await fetch('/api/settings/qbt/test', {
+          method: 'POST',
+          headers: { ...csrfHeaders() }
+        });
+        const out = await res.json();
+        status.textContent = out.success ? `Connected! qBT version: ${out.version}` : `Error: ${out.error}`;
+      } catch (e) {
+        status.textContent = `Error: ${e.message}`;
+      }
+    };
 
     // Theme toggle
     document.getElementById('theme-toggle').onclick = () => {

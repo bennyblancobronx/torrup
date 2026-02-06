@@ -11,18 +11,19 @@
 **Blocker Count**: 0 HIGH security, 0 MEDIUM security, tests present but coverage is minimal
 
 ### What Works
-- Web UI (8 endpoints, all functional)
+- Web UI (9 endpoints, all functional)
 - Queue system (6 states: queued, preparing, uploading, success, failed, duplicate)
-- Settings management (per-media-type configuration)
-- Background worker (polling, state transitions)
+- Settings management (per-media-type configuration + qBitTorrent settings)
+- Background worker (polling, state transitions, auto-seed to qBT)
+- Auto-scan worker (periodic library scanning)
+- qBitTorrent monitor (auto-source completed downloads)
+- CLI (full command set: settings, browse, queue, scan, upload)
 - Docker deployment (non-root user, health checks)
 - Database layer (SQLite, parameterized queries)
 - Tracker API integration (TorrentLeech search/upload)
 
 ### What's Missing
-- Test coverage (basic tests exist, coverage is minimal)
-- Logging framework
-- CLI commands (planned but not implemented)
+- Test coverage for complex scenarios (unit tests for core modules complete)
 
 ---
 
@@ -104,9 +105,9 @@ Week 4: Phase 4-5 (Documentation, verification, release)
 
 | ID | Feature | Notes |
 |----|---------|-------|
-| CLI-001 | CLI commands | Planned in techguide.md |
 | META-001 | IMDB/TVMaze lookups | Roadmap v0.2.x |
 | DESK-001 | Desktop wrapper | Roadmap v0.3.x |
+| TRACK-001 | Multi-tracker support | Extra trackers (e.g. IPT, RED) |
 
 ---
 

@@ -17,6 +17,7 @@ from src.utils import (
     sanitize_release_name,
     suggest_release_name,
 )
+from src.utils.qbittorrent import get_qbt_client
 
 
 def auto_scan_worker(shutdown_event: "threading.Event | None" = None) -> None:
@@ -73,6 +74,120 @@ def auto_scan_worker(shutdown_event: "threading.Event | None" = None) -> None:
             shutdown_event.wait(300)  # Wait 5 mins on error
 
     logger.info("Auto-scan worker stopped")
+
+
+def qbt_monitor_worker(shutdown_event: "threading.Event | None" = None) -> None:
+    """Monitors qBitTorrent for completed downloads and adds them to the upload queue.
+    
+    Args:
+        shutdown_event: Optional event that signals the worker to stop.
+    """
+    import threading as _threading
+
+    if shutdown_event is None:
+        shutdown_event = _threading.Event()
+
+    logger.info("qBitTorrent monitor worker started")
+
+    while not shutdown_event.is_set():
+        try:
+            with db() as conn:
+                enabled = get_setting(conn, "qbt_enabled") == "1"
+                auto_source = get_setting(conn, "qbt_auto_source") == "1"
+                source_cats_str = get_setting(conn, "qbt_source_categories") or ""
+                source_cats = [c.strip() for c in source_cats_str.split(",") if c.strip()]
+                
+                if not enabled or not auto_source:
+                    shutdown_event.wait(60)
+                    continue
+
+                client = get_qbt_client()
+                if not client:
+                    shutdown_event.wait(60)
+                    continue
+
+                # Get completed torrents - if we have targeted categories, we can optimize
+                # by fetching them specifically.
+                all_torrents = []
+                if source_cats:
+                    for cat in source_cats:
+                        all_torrents.extend(client.torrents_info(status_filter='completed', category=cat))
+                else:
+                    all_torrents = client.torrents_info(status_filter='completed')
+                
+                # Deduplicate by hash if we made multiple calls
+                seen_hashes = set()
+                torrents = []
+                for t in all_torrents:
+                    if t.hash not in seen_hashes:
+                        torrents.append(t)
+                        seen_hashes.add(t.hash)
+                
+                for tor in torrents:
+                    if shutdown_event.is_set():
+                        break
+                        
+                    content_path = tor.content_path
+                    
+                    # Check if already in queue or history
+                    exists_in_db = conn.execute(
+                        "SELECT 1 FROM queue WHERE path = ?", (content_path,)
+                    ).fetchone()
+                    
+                    if exists_in_db:
+                        continue
+                        
+                    # Identify media type from qBT category
+                    # Support case-insensitive matching
+                    tor_cat = tor.category.lower() if tor.category else ""
+                    
+                    if "music" in tor_cat: media_type = "music"
+                    elif "movie" in tor_cat: media_type = "movies"
+                    elif "tv" in tor_cat: media_type = "tv"
+                    elif "book" in tor_cat: media_type = "books"
+                    else:
+                        # Skip if we can't map it
+                        continue
+                    
+                    # Get default tracker category for this media type
+                    root = conn.execute("SELECT default_category FROM media_roots WHERE media_type = ?", (media_type,)).fetchone()
+                    category = root["default_category"] if root else 31
+                    
+                    logger.info(f"qBT Monitor: Found completed download {tor.name}, adding to queue.")
+                    
+                    # Extract metadata and add to queue
+                    entry = Path(content_path)
+                    if not entry.exists():
+                        logger.warning(f"qBT Monitor: Path {content_path} does not exist locally.")
+                        continue
+                        
+                    metadata = extract_metadata(entry, media_type)
+                    release_group = get_setting(conn, "release_group") or "Torrup"
+                    release_name = generate_release_name(metadata, media_type, release_group)
+                    if not release_name or release_name == "unnamed" or "Unknown" in release_name:
+                        release_name = suggest_release_name(media_type, entry)
+                        
+                    # Check if it already exists on TL before adding
+                    if check_exists(release_name, exact=False):
+                        logger.info(f"qBT Monitor: {release_name} already on TL, adding as duplicate.")
+                        _add_to_queue_silent(
+                            conn, media_type, entry, release_name,
+                            category, "duplicate", "Found via qBT monitor", metadata
+                        )
+                    else:
+                        _add_to_queue(conn, media_type, entry, release_name, category, metadata)
+                    
+                    # Small sleep to be nice to API
+                    time.sleep(1)
+
+            # Wait before next check
+            shutdown_event.wait(120)
+
+        except Exception as e:
+            logger.error(f"qBitTorrent monitor worker error: {e}", exc_info=True)
+            shutdown_event.wait(300)
+
+    logger.info("qBitTorrent monitor worker stopped")
 
 
 def _scan_root(conn, root, excludes):

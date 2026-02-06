@@ -18,6 +18,16 @@ External integrations, dependencies, and obligations.
 
 **Rate Limits:** None documented. Use responsibly.
 
+### qBitTorrent API
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| qBitTorrent | Configurable (e.g. `http://localhost:8080`) | Seeding & download monitoring |
+
+**Authentication:** WebUI credentials or environment variable overrides.
+
+**Rate Limits:** Local API, no external limits.
+
 **Required Fields (TL):**
 - `announcekey` - 32-char passkey
 - `category` - Category number (see docs/torrentleech/torrentleech.md)
@@ -58,6 +68,9 @@ External integrations, dependencies, and obligations.
 | `TORRUP_DB_PATH` | No | ./torrup.db | SQLite database path |
 | `TORRUP_OUTPUT_DIR` | No | ./output | Output directory for torrents/NFOs |
 | `TORRUP_RUN_WORKER` | No | 1 | Enable background worker (1=yes, 0=no) |
+| `QBT_URL` | No | - | qBitTorrent WebUI URL override |
+| `QBT_USER` | No | - | qBitTorrent username override |
+| `QBT_PASS` | No | - | qBitTorrent password override |
 
 ## Data Storage
 

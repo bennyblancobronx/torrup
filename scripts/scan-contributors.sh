@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-contributors.sh v0.3.2 - Contributor scanner + gitignore validator
+# scan-contributors.sh v0.3.3 - Contributor scanner + gitignore validator
 # Usage: ./scan-contributors.sh [dir] [--scan|--verify|--fix|--fix-all|--help]
 set -euo pipefail
 
@@ -274,7 +274,7 @@ scan_for_intruders() {
     echo ""
 }
 
-echo "Contributor Scanner v0.3.2 | Target: $TARGET_DIR | Allowed: $ALLOWED_NAME"
+echo "Contributor Scanner v0.3.3 | Target: $TARGET_DIR | Allowed: $ALLOWED_NAME"
 
 fix_all_intruders() {
     echo -e "${BLUE}[PURGE ALL GHOSTS]${NC}"
@@ -294,10 +294,10 @@ fix_all_intruders() {
         [[ "$mime" != text/* && "$mime" != application/json && "$mime" != application/x-shellscript ]] && continue
 
         local changed=false
-        local _coauth="co-autho"
-        _coauth="${_coauth}red-by"
 
-        if grep -qiE "$_coauth" "$file" 2>/dev/null; then
+        # Split pattern into variables so hook sed patterns cannot match this guard line
+        local _ca_pfx="co-authored" _ca_sfx="-by"
+        if grep -qiE "${_ca_pfx}${_ca_sfx}" "$file" 2>/dev/null; then
             if [[ "$OSTYPE" == darwin* ]]; then
                 sed -i '' -e '/[Cc]o-[Aa]uthored-[Bb]y/d' "$file" 2>/dev/null || true
             else

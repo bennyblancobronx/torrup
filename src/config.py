@@ -40,6 +40,11 @@ DEFAULT_RELEASE_GROUP = "Torrup"
 
 DEFAULT_EXCLUDES = "torrents,downloads,tmp,trash,incomplete,processing"
 
+# qBitTorrent Defaults
+QBT_DEFAULT_URL = "http://localhost:8080"
+QBT_DEFAULT_USER = "admin"
+QBT_DEFAULT_PASS = "adminadmin"
+
 # NFO Templates - clean, informative format for each media type
 NFO_TEMPLATES = {
     "movies": """================================================================================

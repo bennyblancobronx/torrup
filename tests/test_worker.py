@@ -586,3 +586,138 @@ class TestWorkerMusicNoImdb:
         call_kwargs = mock_upload.call_args
         assert call_kwargs[1]["imdb"] is None
         assert call_kwargs[1]["tvmazeid"] is None
+
+
+class TestTestMode:
+    """Tests for test_mode (dry run) feature."""
+
+    @patch("src.worker.check_exists")
+    @patch("src.worker.upload_torrent")
+    @patch("src.worker.create_torrent")
+    @patch("src.worker.generate_nfo")
+    @patch("src.worker.extract_metadata")
+    @patch("src.worker.extract_thumbnail")
+    @patch("src.worker.write_xml_metadata")
+    def test_test_mode_skips_upload(
+        self,
+        mock_xml,
+        mock_thumb,
+        mock_meta,
+        mock_nfo,
+        mock_torrent,
+        mock_upload,
+        mock_exists,
+        worker_db,
+        tmp_path,
+    ):
+        """Verify test_mode generates files but never calls upload_torrent."""
+        from src.worker import process_queue_item
+        from src.utils import now_iso
+
+        test_dir = tmp_path / "test-album"
+        test_dir.mkdir()
+        (test_dir / "track.flac").touch()
+
+        mock_exists.return_value = False
+        mock_meta.return_value = {}
+        mock_thumb.return_value = None
+        mock_nfo.return_value = tmp_path / "test.nfo"
+        mock_torrent.return_value = tmp_path / "test.torrent"
+        mock_xml.return_value = tmp_path / "test.xml"
+
+        (tmp_path / "test.nfo").touch()
+        (tmp_path / "test.torrent").touch()
+        (tmp_path / "test.xml").touch()
+
+        with worker_db.db() as conn:
+            # Enable test mode
+            conn.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES ('test_mode', '1')"
+            )
+            now = now_iso()
+            conn.execute(
+                """
+                INSERT INTO queue (media_type, path, release_name, category, tags, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ("music", str(test_dir), "Test-Dry-Run", 31, "", "queued", now, now),
+            )
+            conn.commit()
+            item_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+            row = conn.execute("SELECT * FROM queue WHERE id = ?", (item_id,)).fetchone()
+            process_queue_item(conn, row)
+
+            # upload_torrent must NOT have been called
+            mock_upload.assert_not_called()
+
+            # But files should have been generated
+            mock_torrent.assert_called_once()
+            mock_nfo.assert_called_once()
+
+            # Status should be success with test mode message
+            row = conn.execute("SELECT status, message FROM queue WHERE id = ?", (item_id,)).fetchone()
+            assert row["status"] == "success"
+            assert "Test mode" in row["message"]
+
+    @patch("src.worker.check_exists")
+    @patch("src.worker.upload_torrent")
+    @patch("src.worker.create_torrent")
+    @patch("src.worker.generate_nfo")
+    @patch("src.worker.extract_metadata")
+    @patch("src.worker.extract_thumbnail")
+    @patch("src.worker.write_xml_metadata")
+    def test_test_mode_skips_dupe_check(
+        self,
+        mock_xml,
+        mock_thumb,
+        mock_meta,
+        mock_nfo,
+        mock_torrent,
+        mock_upload,
+        mock_exists,
+        worker_db,
+        tmp_path,
+    ):
+        """Verify test_mode skips the TL duplicate check."""
+        from src.worker import process_queue_item
+        from src.utils import now_iso
+
+        test_dir = tmp_path / "test-album"
+        test_dir.mkdir()
+        (test_dir / "track.flac").touch()
+
+        mock_meta.return_value = {}
+        mock_thumb.return_value = None
+        mock_nfo.return_value = tmp_path / "test.nfo"
+        mock_torrent.return_value = tmp_path / "test.torrent"
+        mock_xml.return_value = tmp_path / "test.xml"
+
+        (tmp_path / "test.nfo").touch()
+        (tmp_path / "test.torrent").touch()
+        (tmp_path / "test.xml").touch()
+
+        with worker_db.db() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES ('test_mode', '1')"
+            )
+            now = now_iso()
+            conn.execute(
+                """
+                INSERT INTO queue (media_type, path, release_name, category, tags, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ("music", str(test_dir), "Test-No-Dupe-Check", 31, "", "queued", now, now),
+            )
+            conn.commit()
+            item_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+            row = conn.execute("SELECT * FROM queue WHERE id = ?", (item_id,)).fetchone()
+            process_queue_item(conn, row)
+
+            # check_exists must NOT have been called
+            mock_exists.assert_not_called()
+
+            # Should still succeed
+            row = conn.execute("SELECT status FROM queue WHERE id = ?", (item_id,)).fetchone()
+            assert row["status"] == "success"
