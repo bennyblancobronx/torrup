@@ -438,3 +438,44 @@ class TestExtractAlbumArt:
         result = _extract_album_art(audio_path, out_path)
 
         assert result is None
+
+
+class TestExtractMetadataNoExiftool:
+    """Tests for extract_metadata when exiftool is missing."""
+
+    @patch("src.utils.metadata.shutil.which", return_value=None)
+    def test_extract_metadata_no_exiftool(self, mock_which, tmp_path):
+        """Verify returns empty dict when exiftool is not installed."""
+        test_file = tmp_path / "movie.mkv"
+        test_file.touch()
+
+        result = extract_metadata(test_file, "movies")
+
+        assert result == {}
+        mock_which.assert_called_once_with("exiftool")
+
+
+class TestFindPrimaryFileAudioPriority:
+    """Tests for _find_primary_file audio format priority and hidden file skipping."""
+
+    def test_find_primary_file_prefers_flac_over_mp3(self, tmp_path):
+        """Verify FLAC is preferred over MP3 when both exist."""
+        test_dir = tmp_path / "album"
+        test_dir.mkdir()
+        (test_dir / "track.mp3").touch()
+        (test_dir / "track.flac").touch()
+
+        result = _find_primary_file(test_dir, "music")
+
+        assert result is not None
+        assert result.suffix == ".flac"
+
+    def test_find_primary_file_skips_hidden_files(self, tmp_path):
+        """Verify hidden files (starting with dot) are skipped."""
+        test_dir = tmp_path / "album"
+        test_dir.mkdir()
+        (test_dir / ".hidden.flac").touch()
+
+        result = _find_primary_file(test_dir, "music")
+
+        assert result is None

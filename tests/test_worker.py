@@ -499,3 +499,110 @@ class TestQueueWorker:
         # Verify sleep was called but process was not
         assert mock_sleep.called
         assert not mock_process.called
+
+    @patch("src.worker.time.sleep")
+    @patch("src.worker.process_queue_item")
+    def test_worker_skips_unapproved(
+        self,
+        mock_process,
+        mock_sleep,
+        worker_db,
+    ):
+        """Verify worker does not process items with approval_status='pending_approval'."""
+        from src.worker import queue_worker
+        from src.utils import now_iso
+
+        # Insert a queued item that is pending approval
+        with worker_db.db() as conn:
+            now = now_iso()
+            conn.execute(
+                """
+                INSERT INTO queue (media_type, path, release_name, category, tags, status,
+                                   approval_status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ("music", "/tmp/test", "Test-Pending", 31, "", "queued",
+                 "pending_approval", now, now),
+            )
+            conn.commit()
+
+        # Stop the loop after one iteration
+        call_count = [0]
+        def stop_loop(*args):
+            call_count[0] += 1
+            if call_count[0] >= 1:
+                raise KeyboardInterrupt("Stop test")
+
+        mock_sleep.side_effect = stop_loop
+
+        try:
+            queue_worker()
+        except KeyboardInterrupt:
+            pass
+
+        # Worker should NOT have processed the unapproved item
+        assert not mock_process.called
+
+
+class TestWorkerMusicNoImdb:
+    """Tests for music items not sending IMDB metadata."""
+
+    @patch("src.worker.check_exists")
+    @patch("src.worker.upload_torrent")
+    @patch("src.worker.create_torrent")
+    @patch("src.worker.generate_nfo")
+    @patch("src.worker.extract_metadata")
+    @patch("src.worker.extract_thumbnail")
+    @patch("src.worker.write_xml_metadata")
+    def test_worker_music_no_imdb(
+        self,
+        mock_xml,
+        mock_thumb,
+        mock_meta,
+        mock_nfo,
+        mock_torrent,
+        mock_upload,
+        mock_exists,
+        worker_db,
+        tmp_path,
+    ):
+        """Verify music uploads call upload_torrent with imdb=None."""
+        from src.worker import process_queue_item
+        from src.utils import now_iso
+
+        test_dir = tmp_path / "test-album"
+        test_dir.mkdir()
+        (test_dir / "track.flac").touch()
+
+        mock_exists.return_value = False
+        mock_meta.return_value = {"artist": "Test Artist", "imdb": "tt1234567"}
+        mock_thumb.return_value = None
+        mock_nfo.return_value = tmp_path / "test.nfo"
+        mock_torrent.return_value = tmp_path / "test.torrent"
+        mock_xml.return_value = tmp_path / "test.xml"
+        mock_upload.return_value = {"success": True, "torrent_id": 99999}
+
+        (tmp_path / "test.nfo").touch()
+        (tmp_path / "test.torrent").touch()
+        (tmp_path / "test.xml").touch()
+
+        with worker_db.db() as conn:
+            now = now_iso()
+            conn.execute(
+                """
+                INSERT INTO queue (media_type, path, release_name, category, tags, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ("music", str(test_dir), "Test-Music-Release", 31, "rock", "queued", now, now),
+            )
+            conn.commit()
+            item_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+            row = conn.execute("SELECT * FROM queue WHERE id = ?", (item_id,)).fetchone()
+            process_queue_item(conn, row)
+
+        # Verify upload_torrent was called with imdb=None for music
+        mock_upload.assert_called_once()
+        call_kwargs = mock_upload.call_args
+        assert call_kwargs[1]["imdb"] is None
+        assert call_kwargs[1]["tvmazeid"] is None

@@ -31,15 +31,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Branding updated from "Torrent uploader for TorrentLeech" to "Torrent Upload Tool"
 - Category options moved from config.py to tracker module
 - Routes split into routes.py + routes_queue.py for file size compliance
+- Certainty scoring rebalanced: artist/album weighted highest, no format penalties
+- Auto-scan worker now scans Artist/Album structure recursively for music
+- Auto-scan uses fuzzy matching and rate limiting (1.5s between API calls)
+- Auto-scan applies certainty scoring and approval gating
+- Web UI queue add now uses generate_release_name() for music metadata-based naming
+- Metadata extraction prioritizes FLAC over MP3 when both present
+- Single exiftool call per file (eliminated redundant subprocess)
 
 ### Fixed
 - Missing extract_metadata import in routes.py causing NameError on queue add
 - Hardcoded /Volumes/media path in docker-compose.yml restored to env var
 - Missing trailing newlines in db.py and cli/queue.py
+- Worker now skips imdb/tvmazeid/tvmazetype for music uploads (movies/TV only)
+- mktorrent FileNotFoundError now caught with install instructions instead of crash
+- Mediainfo output now strips File name, Folder name, and absolute path lines (TL compliance)
+- SQLite WAL mode enabled for concurrent access from web + worker + auto-scan
+- Exiftool availability checked before use with clear warning if missing
+- Auto-scan naming logic consolidated with generate_release_name() (was duplicated)
 
 ### Tests
 - Split monolithic test_utils.py into focused test files: test_core.py, test_metadata.py, test_nfo.py, test_thumbnail.py, test_torrent.py
-- 216 tests passing
+- Added tests for certainty scoring, release name generation, stats endpoint, IMDB/TVMaze validation
+- Added tests for worker approval gate, music metadata guard, WAL mode, path stripping, exiftool check
+- 262 tests passing
 
 ## [0.1.3] - 2026-02-04
 

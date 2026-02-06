@@ -116,14 +116,19 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
     update_queue_status(conn, item_id, "uploading", "Uploading to TorrentLeech")
 
     try:
-        # Extract metadata for API
-        imdb = metadata.get("imdb")
-        tvmazeid = metadata.get("tvmazeid")
-        tvmazetype = metadata.get("tvmazetype")
-        
-        # Auto-detect tvmazetype if not set: 1 for boxsets (if path is dir), 2 for episodes
-        if tvmazeid and not tvmazetype:
-            tvmazetype = 1 if path.is_dir() else 2
+        # Extract metadata for API - only use movie/TV fields for those media types
+        if media_type in ("movies", "tv"):
+            imdb = metadata.get("imdb")
+            tvmazeid = metadata.get("tvmazeid")
+            tvmazetype = metadata.get("tvmazetype")
+
+            # Auto-detect tvmazetype if not set: 1 for boxsets (if path is dir), 2 for episodes
+            if tvmazeid and not tvmazetype:
+                tvmazetype = 1 if path.is_dir() else 2
+        else:
+            imdb = None
+            tvmazeid = None
+            tvmazetype = None
 
         result = upload_torrent(
             Path(torrent_path), 
@@ -154,7 +159,7 @@ def queue_worker() -> None:
         try:
             with db() as conn:
                 row = conn.execute(
-                    "SELECT * FROM queue WHERE status = 'queued' ORDER BY id ASC LIMIT 1"
+                    "SELECT * FROM queue WHERE status = 'queued' AND approval_status = 'approved' ORDER BY id ASC LIMIT 1"
                 ).fetchone()
                 if row:
                     process_queue_item(conn, row)

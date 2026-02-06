@@ -376,3 +376,79 @@ class TestFormatMetadataSection:
         metadata = {"description": "x" * 200}
         result = _format_metadata_section(metadata, "movies")
         assert len(result) < 250
+
+
+class TestMediainfoPathStripping:
+    """Tests for mediainfo output path stripping in generate_nfo."""
+
+    @patch("src.utils.nfo.subprocess.run")
+    def test_mediainfo_strips_file_name(self, mock_run, tmp_path):
+        """Verify 'File name' lines are removed from mediainfo output."""
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="General\nFile name                                : movie.mkv\nFormat: MKV\n"
+        )
+
+        out_dir = tmp_path / "output"
+        out_dir.mkdir()
+        test_dir = tmp_path / "movie"
+        test_dir.mkdir()
+        (test_dir / "movie.mkv").touch()
+
+        result = generate_nfo(
+            path=test_dir,
+            release_name="Test-Movie",
+            out_dir=out_dir,
+            media_type="movies",
+        )
+
+        content = result.read_text()
+        assert "File name" not in content
+
+    @patch("src.utils.nfo.subprocess.run")
+    def test_mediainfo_strips_folder_name(self, mock_run, tmp_path):
+        """Verify 'Folder name' lines are removed from mediainfo output."""
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="General\nFolder name                              : /home/user/movies\nFormat: MKV\n"
+        )
+
+        out_dir = tmp_path / "output"
+        out_dir.mkdir()
+        test_dir = tmp_path / "movie"
+        test_dir.mkdir()
+        (test_dir / "movie.mkv").touch()
+
+        result = generate_nfo(
+            path=test_dir,
+            release_name="Test-Movie",
+            out_dir=out_dir,
+            media_type="movies",
+        )
+
+        content = result.read_text()
+        assert "Folder name" not in content
+
+    @patch("src.utils.nfo.subprocess.run")
+    def test_mediainfo_strips_absolute_paths(self, mock_run, tmp_path):
+        """Verify lines containing absolute paths (' : /') are removed."""
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="General\nComplete name                            : /home/user/movies/movie.mkv\nFormat: MKV\n"
+        )
+
+        out_dir = tmp_path / "output"
+        out_dir.mkdir()
+        test_dir = tmp_path / "movie"
+        test_dir.mkdir()
+        (test_dir / "movie.mkv").touch()
+
+        result = generate_nfo(
+            path=test_dir,
+            release_name="Test-Movie",
+            out_dir=out_dir,
+            media_type="movies",
+        )
+
+        content = result.read_text()
+        assert "/home/user/movies/movie.mkv" not in content

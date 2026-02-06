@@ -11,7 +11,7 @@ from flask import jsonify, request
 from src.extensions import limiter
 from src.config import CATEGORY_OPTIONS, MEDIA_TYPES
 from src.db import db, get_media_roots, get_setting
-from src.utils import extract_metadata, now_iso, suggest_release_name
+from src.utils import extract_metadata, generate_release_name, now_iso, suggest_release_name
 from src.logger import logger
 from src.routes import (
     bp,
@@ -195,6 +195,14 @@ def _enqueue_items(items: list[dict[str, Any]]) -> list[int]:
                 meta = extract_metadata(path_obj, media_type)
                 imdb = imdb or meta.get("imdb")
                 tvmazeid = tvmazeid or meta.get("tvmazeid")
+
+                if not item.get("release_name") and meta:
+                    release_group = get_setting(conn, "release_group") or "Torrup"
+                    generated = generate_release_name(meta, media_type, release_group)
+                    if generated and generated != "unnamed" and "Unknown" not in generated:
+                        release_name = generated
+                        if not validate_release_name(str(release_name)):
+                            release_name = suggest_release_name(media_type, path_obj)
 
             now = now_iso()
             cur = conn.execute(

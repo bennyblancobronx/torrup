@@ -6,22 +6,30 @@ import time
 from pathlib import Path
 
 from src.api import check_exists
+from src.cli.queue import calculate_certainty
 from src.db import db, get_media_roots, get_setting, get_excludes
 from src.logger import logger
-from src.utils import extract_metadata, is_excluded, now_iso, suggest_release_name
+from src.utils import (
+    extract_metadata,
+    generate_release_name,
+    is_excluded,
+    now_iso,
+    sanitize_release_name,
+    suggest_release_name,
+)
 
 
 def auto_scan_worker() -> None:
     """Periodically scans enabled media roots for new content and queues them if missing on TL."""
     logger.info("Auto-scan worker started")
-    
+
     while True:
         try:
             with db() as conn:
                 enabled = get_setting(conn, "enable_auto_upload") == "1"
                 interval_mins = int(get_setting(conn, "auto_scan_interval") or 60)
                 excludes = get_excludes(conn)
-                
+
                 if not enabled:
                     time.sleep(60)
                     continue
@@ -30,25 +38,25 @@ def auto_scan_worker() -> None:
                 for root in roots:
                     if not root["auto_scan"]:
                         continue
-                    
+
                     # Check if it's time to scan this root
                     last_scan = root["last_scan"]
                     if last_scan:
                         # Simple check: has interval passed?
                         pass # For now we just scan every loop if auto_scan is on
-                    
+
                     logger.info(f"Auto-scanning {root['media_type']} root: {root['path']}")
                     _scan_root(conn, root, excludes)
-                    
+
                     # Update last scan time
                     conn.execute(
                         "UPDATE media_roots SET last_scan = ? WHERE media_type = ?",
                         (now_iso(), root["media_type"])
                     )
-            
+
             # Wait for next interval
             time.sleep(interval_mins * 60)
-            
+
         except Exception as e:
             logger.error(f"Auto-scan worker error: {e}", exc_info=True)
             time.sleep(300) # Sleep 5 mins on error
@@ -62,81 +70,82 @@ def _scan_root(conn, root, excludes):
 
     media_type = root["media_type"]
     category = root["default_category"]
-    
-    # Iterate over immediate children (folders/files as releases)
-    for entry in base_path.iterdir():
-        if is_excluded(entry, excludes):
-            continue
-        
+    release_group = get_setting(conn, "release_group") or "Torrup"
+
+    # For music, scan two levels deep (Artist/Album).
+    # For other types, scan immediate children only.
+    if media_type == "music":
+        entries = []
+        for artist_dir in base_path.iterdir():
+            if not artist_dir.is_dir() or is_excluded(artist_dir, excludes):
+                continue
+            for album_dir in artist_dir.iterdir():
+                if album_dir.is_dir() and not is_excluded(album_dir, excludes):
+                    entries.append(album_dir)
+    else:
+        entries = [e for e in base_path.iterdir() if not is_excluded(e, excludes)]
+
+    for entry in entries:
         # Check if already in queue or history
         exists_in_db = conn.execute(
             "SELECT 1 FROM queue WHERE path = ?", (str(entry),)
         ).fetchone()
-        
+
         if exists_in_db:
             continue
 
         metadata = extract_metadata(entry, media_type)
-        release_name = _determine_release_name(entry, media_type, metadata)
+        release_name = generate_release_name(metadata, media_type, release_group)
+        if not release_name or release_name == "unnamed" or "Unknown" in release_name:
+            release_name = suggest_release_name(media_type, entry)
+
         if not release_name:
             continue
 
-        # Check TL
-        if check_exists(release_name):
+        # Check TL (exact=False for fuzzy matching, rate-limited)
+        if check_exists(release_name, exact=False):
             logger.info(f"Auto-scan: {release_name} already on TL, skipping.")
-            # Record it so we don't check again
-            _add_to_queue_silent(conn, media_type, entry, release_name, category, "duplicate", "Found during auto-scan", metadata)
+            _add_to_queue_silent(
+                conn, media_type, entry, release_name,
+                category, "duplicate", "Found during auto-scan", metadata,
+            )
+            time.sleep(1.5)
             continue
+
+        time.sleep(1.5)
 
         # Not on TL, add to queue
         logger.info(f"Auto-scan: Found new content {release_name}, adding to queue.")
         _add_to_queue(conn, media_type, entry, release_name, category, metadata)
 
 
-def _determine_release_name(path: Path, media_type: str, meta: dict) -> str:
-    """Determine the release name, preferring tags for music."""
-    if media_type == "music":
-        if meta.get("artist") and meta.get("album"):
-            # Format: Artist.Album.Year.Source.Audio.Codec-ReleaseGroup
-            year = meta.get("year", "")
-            name = f"{meta['artist']}.{meta['album']}"
-            if year:
-                name += f".{year}"
-            
-            # Add extension-based format if it's a file
-            if path.is_file():
-                ext = path.suffix.upper().replace(".", "")
-                name += f".{ext}"
-            else:
-                # Check for FLAC/MP3 in children if folder
-                first_file = next(path.rglob("*.*"), None)
-                if first_file:
-                    ext = first_file.suffix.upper().replace(".", "")
-                    name += f".{ext}"
-            
-            from src.utils import sanitize_release_name
-            return sanitize_release_name(name)
-            
-    return suggest_release_name(media_type, path)
-
-
 def _add_to_queue(conn, media_type, path, release_name, category, metadata):
-    """Add item to queue for processing."""
+    """Add item to queue for processing with certainty scoring."""
+    certainty = calculate_certainty(metadata, media_type)
+    approval = "approved" if certainty >= 80 else "pending_approval"
+
     conn.execute(
         """
-        INSERT INTO queue (media_type, path, release_name, category, imdb, tvmazeid, tvmazetype, created_at, updated_at, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued')
+        INSERT INTO queue (
+            media_type, path, release_name, category,
+            imdb, tvmazeid, tvmazetype,
+            created_at, updated_at, status,
+            certainty_score, approval_status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?)
         """,
         (
-            media_type, 
-            str(path), 
-            release_name, 
-            category, 
-            metadata.get("imdb"), 
-            metadata.get("tvmazeid"), 
-            metadata.get("tvmazetype"), 
-            now_iso(), 
-            now_iso()
+            media_type,
+            str(path),
+            release_name,
+            category,
+            metadata.get("imdb"),
+            metadata.get("tvmazeid"),
+            metadata.get("tvmazetype"),
+            now_iso(),
+            now_iso(),
+            certainty,
+            approval,
         )
     )
 
@@ -149,16 +158,16 @@ def _add_to_queue_silent(conn, media_type, path, release_name, category, status,
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            media_type, 
-            str(path), 
-            release_name, 
-            category, 
-            metadata.get("imdb"), 
-            metadata.get("tvmazeid"), 
-            metadata.get("tvmazetype"), 
-            now_iso(), 
-            now_iso(), 
-            status, 
+            media_type,
+            str(path),
+            release_name,
+            category,
+            metadata.get("imdb"),
+            metadata.get("tvmazeid"),
+            metadata.get("tvmazetype"),
+            now_iso(),
+            now_iso(),
+            status,
             message
         )
     )

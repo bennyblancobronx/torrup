@@ -43,11 +43,16 @@ def generate_nfo(
                 text=True,
                 timeout=30,
             )
-            mediainfo = "\n".join(
-                line
-                for line in result.stdout.split("\n")
-                if not line.strip().startswith("Complete name")
-            )
+            path_indicators = ("complete name", "file name", "folder name")
+            filtered_lines = []
+            for line in result.stdout.split("\n"):
+                stripped = line.strip().lower()
+                if any(stripped.startswith(ind) for ind in path_indicators):
+                    continue
+                if " : /" in line or " : C:\\" in line:
+                    continue
+                filtered_lines.append(line)
+            mediainfo = "\n".join(filtered_lines)
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError):
             mediainfo = "  MediaInfo not available"
 

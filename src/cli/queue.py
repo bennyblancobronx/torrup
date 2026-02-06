@@ -22,20 +22,17 @@ def calculate_certainty(metadata: dict, media_type: str) -> int:
     """Calculate certainty score (0-100) based on metadata quality."""
     score = 0
     if media_type == "music":
-        # Music requirements
-        if metadata.get("artist"): score += 20
-        if metadata.get("album"): score += 20
-        if metadata.get("year"): score += 20
-        if metadata.get("format") == "FLAC": score += 20
-        # Bonus for high-res
-        if metadata.get("bitrate") == "24bit": score += 20
-        # Penalty for MP3
-        if metadata.get("format") == "MP3": score -= 10
+        # Core fields (weighted by importance for correct release naming)
+        if metadata.get("artist"): score += 30
+        if metadata.get("album"): score += 30
+        if metadata.get("year"): score += 15
+        if metadata.get("format"): score += 15  # Any detected format
+        if metadata.get("bitrate"): score += 10
     else:
-        # Generic/Movie requirements
+        # Generic/Movie/TV
         if metadata.get("title"): score += 40
-        if metadata.get("year"): score += 40
-        if metadata.get("imdb") or metadata.get("tvmazeid"): score += 20
+        if metadata.get("year"): score += 30
+        if metadata.get("imdb") or metadata.get("tvmazeid"): score += 30
 
     return max(0, min(100, score))
 

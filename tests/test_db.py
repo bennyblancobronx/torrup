@@ -275,3 +275,34 @@ class TestQueueOperations:
         list_res = client.get("/api/queue")
         items = list_res.get_json()
         assert not any(i["id"] == item_id for i in items)
+
+
+class TestWalMode:
+    """Tests for WAL journal mode and new queue columns."""
+
+    def test_wal_mode_enabled(self, db_conn):
+        """Verify PRAGMA journal_mode returns 'wal'."""
+        row = db_conn.execute("PRAGMA journal_mode").fetchone()
+        assert row[0] == "wal"
+
+    def test_new_queue_columns_exist(self, db_conn):
+        """Verify certainty_score and approval_status columns exist and persist values."""
+        from src.utils import now_iso
+
+        now = now_iso()
+        db_conn.execute(
+            """
+            INSERT INTO queue (media_type, path, release_name, category, tags, status,
+                               certainty_score, approval_status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("music", "/tmp/test", "Test-Columns", 31, "", "queued",
+             75, "pending_approval", now, now),
+        )
+        db_conn.commit()
+
+        row = db_conn.execute(
+            "SELECT certainty_score, approval_status FROM queue WHERE release_name = 'Test-Columns'"
+        ).fetchone()
+        assert row["certainty_score"] == 75
+        assert row["approval_status"] == "pending_approval"

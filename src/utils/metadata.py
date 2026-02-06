@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
+import shutil
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from src.utils.core import human_size, now_iso, validate_path_for_subprocess
+
+logger = logging.getLogger(__name__)
+
+# Higher priority formats first (lower number = preferred).
+AUDIO_PRIORITY = {".flac": 0, ".wav": 1, ".m4a": 2, ".mp3": 3, ".ogg": 4, ".opus": 5}
+
+_SKIP_SUFFIXES = {".tmp", ".bak"}
 
 
 def write_xml_metadata(
@@ -60,6 +69,10 @@ def extract_metadata(path: Path, media_type: str = "movies") -> dict:
     - music: artist, album, track, year, genre, format, bitrate, channels, source
     - books: title, author, publisher, year
     """
+    if not shutil.which("exiftool"):
+        logger.warning("exiftool not installed -- metadata extraction disabled")
+        return {}
+
     target = _find_primary_file(path, media_type)
     result = {}
 
@@ -71,6 +84,7 @@ def extract_metadata(path: Path, media_type: str = "movies") -> dict:
         return result
 
     try:
+        # Single exiftool call -- request all fields we need (including audio).
         exif_result = subprocess.run(
             ["exiftool", "-json", "-n", str(target)],
             capture_output=True,
@@ -82,63 +96,57 @@ def extract_metadata(path: Path, media_type: str = "movies") -> dict:
             if data:
                 raw = data[0]
                 result.update(_normalize_metadata(raw, media_type))
-                
-        # Enhanced Audio Properties
-        if media_type == "music":
-            audio_props = _get_audio_properties(target)
-            result.update(audio_props)
-            
+
+                # Derive audio properties from the same exiftool output.
+                if media_type == "music":
+                    result.update(_audio_props_from_exif(raw))
+
     except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError, json.JSONDecodeError):
         pass
-        
+
     return {k: v for k, v in result.items() if v}
 
 
-def _get_audio_properties(path: Path) -> dict:
-    """Extract detailed audio properties for naming standards."""
-    props = {
-        "format": "MP3", 
+def _audio_props_from_exif(raw: dict) -> dict:
+    """Derive audio properties from an already-loaded exiftool dict.
+
+    Avoids a second subprocess call -- reuses the full JSON output that
+    extract_metadata() already fetched.
+    """
+    props: dict[str, str] = {
+        "format": "MP3",
         "bitrate": "320",
         "channels": "2.0",
-        "source": "WEB" # Default assumption
+        "source": "WEB",  # Default assumption
     }
-    
-    try:
-        # Get technical metadata
-        cmd = ["exiftool", "-json", "-AudioBitrate", "-SampleRate", "-BitsPerSample", "-FileType", "-Channels", str(path)]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        if res.returncode == 0:
-            data = json.loads(res.stdout)[0]
-            
-            # Format
-            ft = data.get("FileType", "").upper()
-            props["format"] = ft if ft in ["FLAC", "MP3"] else "MP3"
-            
-            # Bitrate / Quality
-            if props["format"] == "FLAC":
-                bits = data.get("BitsPerSample", 16)
-                props["bitrate"] = "24bit" if int(bits) > 16 else "16bit"
-            else:
-                br = data.get("AudioBitrate", "320000")
-                # Handle "320 kbps" string or raw number
-                if isinstance(br, str):
-                    br = "".join(filter(str.isdigit, br))
-                br_val = int(br) if br else 320000
-                
-                if br_val >= 320000:
-                    props["bitrate"] = "320"
-                elif br_val >= 256000:
-                    props["bitrate"] = "V0"
-                else:
-                    props["bitrate"] = "V2"
 
-            # Channels
-            ch = data.get("Channels", 2)
-            props["channels"] = "2.0" if int(ch) == 2 else "1.0"
-            
-    except Exception:
+    try:
+        ft = str(raw.get("FileType", "")).upper()
+        props["format"] = ft if ft in ("FLAC", "MP3", "OGG", "OPUS", "M4A", "WAV") else "MP3"
+
+        # Bitrate / quality
+        if props["format"] == "FLAC":
+            bits = raw.get("BitsPerSample", 16)
+            props["bitrate"] = "24bit" if int(bits) > 16 else "16bit"
+        else:
+            br = raw.get("AudioBitrate", "320000")
+            if isinstance(br, str):
+                br = "".join(filter(str.isdigit, br))
+            br_val = int(br) if br else 320000
+
+            if br_val >= 320000:
+                props["bitrate"] = "320"
+            elif br_val >= 256000:
+                props["bitrate"] = "V0"
+            else:
+                props["bitrate"] = "V2"
+
+        # Channels
+        ch = raw.get("Channels", 2)
+        props["channels"] = "2.0" if int(ch) == 2 else "1.0"
+    except (ValueError, TypeError):
         pass
-        
+
     return props
 
 def _extract_ids_from_nfos(path: Path) -> dict:
@@ -171,20 +179,46 @@ def _extract_ids_from_nfos(path: Path) -> dict:
 
 
 def _find_primary_file(path: Path, media_type: str) -> Path | None:
-    """Find the primary file to extract metadata from."""
+    """Find the primary file to extract metadata from.
+
+    For music, files are sorted by format quality (FLAC > WAV > M4A > MP3 > OGG > OPUS).
+    Hidden files (starting with '.') and temp files (.tmp, .bak) are always skipped.
+    """
     if path.is_file():
         return path
 
     extensions = {
-        "movies": [".mkv", ".mp4", ".avi", ".m4v"],
-        "tv": [".mkv", ".mp4", ".avi", ".m4v"],
-        "music": [".flac", ".mp3", ".m4a", ".ogg", ".opus"],
-        "books": [".epub", ".pdf", ".mobi", ".azw3"],
+        "movies": {".mkv", ".mp4", ".avi", ".m4v"},
+        "tv": {".mkv", ".mp4", ".avi", ".m4v"},
+        "music": set(AUDIO_PRIORITY.keys()),
+        "books": {".epub", ".pdf", ".mobi", ".azw3"},
     }
 
     exts = extensions.get(media_type, extensions["movies"])
+
+    if media_type == "music":
+        # Collect all valid audio files, then pick the highest quality format.
+        audio_files = [
+            f
+            for f in path.rglob("*")
+            if f.is_file()
+            and not f.name.startswith(".")
+            and f.suffix.lower() not in _SKIP_SUFFIXES
+            and f.suffix.lower() in exts
+        ]
+        if not audio_files:
+            return None
+        audio_files.sort(key=lambda f: AUDIO_PRIORITY.get(f.suffix.lower(), 99))
+        return audio_files[0]
+
+    # Non-music: return first matching file (skip hidden/temp).
     for f in path.rglob("*"):
-        if f.suffix.lower() in exts:
+        if (
+            f.is_file()
+            and not f.name.startswith(".")
+            and f.suffix.lower() not in _SKIP_SUFFIXES
+            and f.suffix.lower() in exts
+        ):
             return f
     return None
 

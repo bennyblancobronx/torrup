@@ -122,3 +122,20 @@ class TestCreateTorrent:
         with pytest.raises(ValueError) as exc_info:
             create_torrent(test_dir, "Test-Release", out_dir)
         assert "Invalid output path" in str(exc_info.value)
+
+    @patch("src.utils.torrent.subprocess.run")
+    def test_create_torrent_mktorrent_not_found(self, mock_run, tmp_path):
+        """Verify error message mentions install instructions when mktorrent is missing."""
+        mock_run.side_effect = FileNotFoundError("No such file or directory: 'mktorrent'")
+
+        test_dir = tmp_path / "album"
+        test_dir.mkdir()
+        (test_dir / "track.flac").write_bytes(b"\x00" * 1024)
+
+        out_dir = tmp_path / "output"
+        out_dir.mkdir()
+
+        with pytest.raises(Exception) as exc_info:
+            create_torrent(test_dir, "Test-Release", out_dir)
+        assert "mktorrent not installed" in str(exc_info.value)
+        assert "brew install mktorrent" in str(exc_info.value) or "apt install mktorrent" in str(exc_info.value)

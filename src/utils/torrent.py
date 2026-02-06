@@ -77,6 +77,11 @@ def create_torrent(path: Path, release_name: str, out_dir: Path) -> Path:
             raise Exception(f"mktorrent failed: {result.stderr}")
     except subprocess.TimeoutExpired:
         raise Exception("mktorrent timed out after 120 seconds")
+    except FileNotFoundError:
+        raise Exception(
+            "mktorrent not installed. Install with: brew install mktorrent (macOS) "
+            "or apt install mktorrent (Linux)"
+        )
     except subprocess.SubprocessError as e:
         raise Exception(f"mktorrent subprocess error: {e}")
 
