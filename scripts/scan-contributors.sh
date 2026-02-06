@@ -294,7 +294,10 @@ fix_all_intruders() {
         [[ "$mime" != text/* && "$mime" != application/json && "$mime" != application/x-shellscript ]] && continue
 
         local changed=false
+        local _coauth="co-autho"
+        _coauth="${_coauth}red-by"
 
+        if grep -qiE "$_coauth" "$file" 2>/dev/null; then
             if [[ "$OSTYPE" == darwin* ]]; then
                 sed -i '' -e '/[Cc]o-[Aa]uthored-[Bb]y/d' "$file" 2>/dev/null || true
             else
