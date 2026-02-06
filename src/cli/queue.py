@@ -68,7 +68,7 @@ def cmd_queue_add(cli) -> int:
     # 2. Generate Name (if not overridden)
     if not release_name:
         with db() as conn:
-            group = get_setting(conn, "release_group") or "Torrup"
+            group = get_setting(conn, "release_group") or "torrup"
         release_name = generate_release_name(meta, media_type, group)
         # Fallback if metadata empty
         if release_name == "unnamed" or release_name.startswith("Unknown"):

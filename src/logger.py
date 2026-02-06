@@ -1,4 +1,4 @@
-"""Logging configuration for Torrup."""
+"""Logging configuration for torrup."""
 
 from __future__ import annotations
 

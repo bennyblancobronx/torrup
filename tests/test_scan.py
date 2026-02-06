@@ -116,7 +116,7 @@ class TestGenerateReleaseNameMusic:
             "format": "FLAC",
             "bitrate": "16bit",
         }
-        name = generate_release_name(meta, "music", "Torrup")
+        name = generate_release_name(meta, "music", "torrup")
         # Parts should be separated by hyphens
         parts = name.split("-")
         # Artist is sanitized (spaces become dots), so the split
@@ -125,7 +125,7 @@ class TestGenerateReleaseNameMusic:
         assert "WEB" in name
         assert "FLAC" in name
         assert "16bit" in name
-        assert "Torrup" in name
+        assert "torrup" in name
         assert "Pink" in name or "Floyd" in name
 
     def test_mp3_format(self):
@@ -152,7 +152,7 @@ class TestGenerateReleaseNameMusic:
             "format": "MP3",
             "bitrate": "V0",
         }
-        name = generate_release_name(meta, "music", "Torrup")
+        name = generate_release_name(meta, "music", "torrup")
         # The name should NOT contain a 4-digit year between album and source
         # but the structure should still be valid
         assert "WEB" in name
@@ -162,7 +162,7 @@ class TestGenerateReleaseNameMusic:
     def test_fallback_with_missing_metadata(self):
         """Missing metadata produces a name with Unknown but still structured."""
         meta = {}
-        name = generate_release_name(meta, "music", "Torrup")
+        name = generate_release_name(meta, "music", "torrup")
         # Should still return something, using defaults
         assert name is not None
         assert len(name) > 0
@@ -179,7 +179,7 @@ class TestGenerateReleaseNameMusic:
             "format": "FLAC",
             "bitrate": "16bit",
         }
-        name = generate_release_name(meta, "music", "Torrup")
+        name = generate_release_name(meta, "music", "torrup")
         # Slashes and parentheses should be removed or replaced
         assert "/" not in name
         assert "(" not in name
@@ -196,14 +196,14 @@ class TestGenerateReleaseNameMovies:
     def test_movie_with_year(self):
         """Movie name includes year when present."""
         meta = {"title": "Inception", "year": "2010"}
-        name = generate_release_name(meta, "movies", "Torrup")
+        name = generate_release_name(meta, "movies", "torrup")
         assert "Inception" in name
         assert "2010" in name
-        assert "Torrup" in name
+        assert "torrup" in name
 
     def test_movie_without_year(self):
         """Movie name without year still includes group."""
         meta = {"title": "Inception"}
-        name = generate_release_name(meta, "movies", "Torrup")
+        name = generate_release_name(meta, "movies", "torrup")
         assert "Inception" in name
-        assert "Torrup" in name
+        assert "torrup" in name

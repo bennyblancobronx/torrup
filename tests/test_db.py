@@ -58,9 +58,6 @@ class TestInitDb:
         """Verify default settings are populated."""
         from src.db import get_setting
 
-        browse_base = get_setting(db_conn, "browse_base")
-        assert browse_base == "/volume/media"
-
         exclude_dirs = get_setting(db_conn, "exclude_dirs")
         assert "torrents" in exclude_dirs
 
@@ -82,8 +79,8 @@ class TestGetSetting:
         """Verify existing setting is returned."""
         from src.db import get_setting
 
-        value = get_setting(db_conn, "browse_base")
-        assert value == "/volume/media"
+        value = get_setting(db_conn, "exclude_dirs")
+        assert "torrents" in value
 
     def test_get_setting_default_for_missing(self, db_conn):
         """Verify empty string returned for missing key."""
@@ -110,10 +107,10 @@ class TestSetSetting:
         """Verify existing setting is updated."""
         from src.db import get_setting, set_setting
 
-        set_setting(db_conn, "browse_base", "/updated/path")
+        set_setting(db_conn, "output_dir", "/updated/path")
         db_conn.commit()
 
-        value = get_setting(db_conn, "browse_base")
+        value = get_setting(db_conn, "output_dir")
         assert value == "/updated/path"
 
 

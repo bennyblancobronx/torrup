@@ -1,6 +1,6 @@
 # Technical Guide
 
-How Torrup works internally.
+How torrup works internally.
 
 ## Architecture
 
@@ -27,7 +27,7 @@ Tracker-specific configuration extracted from config.py:
 ### Database (src/db.py)
 
 SQLite with three tables:
-- `settings` - Global configuration (browse_base, output_dir, exclude_dirs, release_group, templates)
+- `settings` - Global configuration (output_dir, exclude_dirs, release_group, templates)
 - `media_roots` - Per-media-type settings (path, enabled, default_category, auto_scan, last_scan)
 - `queue` - Upload queue (path, release_name, category, status, timestamps, imdb, tvmazeid, tvmazetype, certainty_score, approval_status)
 
@@ -67,6 +67,8 @@ Page routes and browse/settings API (src/routes.py):
 - `GET /settings` - Settings UI
 - `POST /api/settings` - Update settings
 - `GET /api/browse` - Browse media folders
+- `GET /api/browse-dirs` - Browse filesystem directories (for settings path picker)
+- `POST /api/settings/qbt/test` - Test qBitTorrent connection
 
 Queue API routes (src/routes_queue.py):
 - `POST /api/queue/add` - Add items to queue
@@ -187,14 +189,14 @@ Each media type has a structured NFO template (defined in `src/config.py`):
 --------------------------------------------------------------------------------
 {mediainfo}
 --------------------------------------------------------------------------------
-  Uploaded with Torrup
+  Uploaded with torrup
   Generated: {timestamp}
 ================================================================================
 ```
 
 Template variables:
 - `{release_name}` - Sanitized release name
-- `{release_group}` - From settings (default: Torrup)
+- `{release_group}` - From settings (default: torrup)
 - `{source}` - Extracted from release name (BluRay, WEB-DL, etc.)
 - `{resolution}` - Extracted from release name (1080p, 4K, etc.)
 - `{format}` - For music/books (FLAC, EPUB, etc.)

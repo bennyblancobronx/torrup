@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-02-06
+
+### Added
+- TL activity enforcement: dashboard + queue warning banners when projected uploads < monthly minimum
+- Monthly upload history chart on dashboard (6-month bar chart)
+- History page monthly counter
+- CLI command: torrup activity (--json supported)
+- ntfy push notifications on critical activity transitions (configurable URL + topic)
+- API: GET /api/activity/health, GET /api/activity/history
+- Auto-worker pace estimation in banner
+
+### Changed
+- TL numeric settings now enforce min=0 max=100
+- Removed redundant browse_base setting (each media root already has its own path)
+- Grayed out movies, tv, books in UI (music only supported for now)
+- Header: removed worker status indicator, replaced Settings text with gear icon (right-justified), version number inline after app name, nav hover uses accent color
+- Settings page includes ntfy notification configuration
+
+## [0.1.7] - 2026-02-06
+
+### Changed
+- **Branding**: Lowercased app name from "Torrup" to "torrup" across entire codebase
+  - `APP_NAME` config constant now "torrup"
+  - `DEFAULT_RELEASE_GROUP` now "torrup"
+  - Default `qbt_tag` setting now "torrup"
+  - NFO templates now say "Uploaded with torrup"
+  - CLI description, docstrings, Basic auth realm all lowercased
+  - All fallback values in workers, CLI commands, and route handlers updated
+  - Settings UI default values for release group and qBT tag lowercased
+  - README, about.md, CONTRIBUTING.md, Dockerfile label updated
+  - Tests updated to match new lowercase branding
+  - 275 tests passing
+
+## [0.1.6] - 2026-02-06
+
+### Added
+- **File Explorer**: Browse buttons on all path fields in Settings (Browse Base, Output Dir, Media Roots) that open a directory picker modal for navigating the filesystem
+- **Theme Setting**: Light/Dark/System theme selector moved into Settings page (General section) with live preview; removed the header toggle button from all pages
+- New `/api/browse-dirs` endpoint for server-side directory listing (skips hidden folders and symlinks)
+
+### Changed
+- Theme init script across all templates now supports "system" preference (was previously defaulting to a resolved value)
+
 ## [0.1.5] - 2026-02-06
 
 ### Changed

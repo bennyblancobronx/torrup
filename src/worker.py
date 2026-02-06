@@ -21,7 +21,7 @@ from src.utils import (
     sanitize_release_name,
     write_xml_metadata,
 )
-from src.utils.qbittorrent import add_to_qbt
+from src.utils.qbittorrent import add_to_qbt, map_media_type_to_qbt_category
 
 
 def sanitize_error_message(error: Exception) -> str:
@@ -56,7 +56,7 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
     category = int(item["category"])
     tags = item["tags"]
     out_dir = get_output_dir(conn)
-    release_group = get_setting(conn, "release_group") or "Torrup"
+    release_group = get_setting(conn, "release_group") or "torrup"
 
     logger.info(f"Processing queue item {item_id}: {release_name}")
 
@@ -154,7 +154,8 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
             # Auto-add to qBitTorrent if enabled
             if get_setting(conn, "qbt_auto_add") == "1":
                 # We can map media_type to qBT category
-                qbt_category = media_type
+                category_map = get_setting(conn, "qbt_category_map") or ""
+                qbt_category = map_media_type_to_qbt_category(media_type, category_map)
                 add_to_qbt(torrent_path, path, category=qbt_category)
         else:
             logger.warning(f"Item {item_id}: Upload failed - {result.get('error')}")
@@ -180,12 +181,22 @@ def queue_worker(shutdown_event: "threading.Event | None" = None) -> None:
     max_backoff = 60
     while not shutdown_event.is_set():
         try:
+            processed = False
             with db() as conn:
                 row = conn.execute(
                     "SELECT * FROM queue WHERE status = 'queued' AND approval_status = 'approved' ORDER BY id ASC LIMIT 1"
                 ).fetchone()
                 if row:
                     process_queue_item(conn, row)
+                    processed = True
+            if processed:
+                try:
+                    from src.utils.activity import calculate_health, check_and_notify_critical
+                    with db() as notify_conn:
+                        health = calculate_health(notify_conn)
+                        check_and_notify_critical(notify_conn, health["critical"])
+                except Exception as e:
+                    logger.warning(f"Activity notification check failed: {e}")
             backoff = 2  # Reset backoff on success
             shutdown_event.wait(2)
         except Exception as e:

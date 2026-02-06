@@ -1,4 +1,4 @@
-"""Torrup Command Line Interface."""
+"""torrup Command Line Interface."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from src.cli.queue import (
     cmd_queue_update,
 )
 from src.cli.settings import cmd_settings_get, cmd_settings_set
+from src.cli.qbt import cmd_qbt_add, cmd_qbt_monitor, cmd_qbt_test
 from src.cli.upload import (
     cmd_check_dup,
     cmd_prepare,
@@ -26,6 +27,7 @@ from src.cli.upload import (
     cmd_uploads_show,
 )
 from src.cli.scan import cmd_scan
+from src.cli.activity import cmd_activity
 
 # Exit codes
 EXIT_SUCCESS = 0
@@ -33,7 +35,7 @@ EXIT_ERROR = 1
 
 
 class CLI:
-    """Torrup CLI handler."""
+    """torrup CLI handler."""
 
     def __init__(self, args: argparse.Namespace):
         self.args = args
@@ -62,7 +64,7 @@ class CLI:
 
 def build_parser() -> argparse.ArgumentParser:
     """Build argument parser with all subcommands."""
-    parser = argparse.ArgumentParser(prog="torrup", description="Torrup - Torrent Upload Tool")
+    parser = argparse.ArgumentParser(prog="torrup", description="torrup - Torrent Upload Tool")
     parser.add_argument("--version", "-v", action="version", version=f"torrup {APP_VERSION}")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress non-essential output")
@@ -155,6 +157,23 @@ def build_parser() -> argparse.ArgumentParser:
     uploads_show = uploads_sub.add_parser("show", help="Show upload details")
     uploads_show.add_argument("id", type=int, help="Upload ID")
 
+    # activity
+    subparsers.add_parser("activity", help="Show TL activity health for the current month")
+
+    # qbt
+    qbt_parser = subparsers.add_parser("qbt", help="qBitTorrent commands")
+    qbt_sub = qbt_parser.add_subparsers(dest="qbt_cmd")
+
+    qbt_test = qbt_sub.add_parser("test", help="Test qBitTorrent connection")
+
+    qbt_add = qbt_sub.add_parser("add", help="Add a torrent to qBitTorrent")
+    qbt_add.add_argument("--torrent", required=True, help="Path to .torrent file")
+    qbt_add.add_argument("--save-path", required=True, help="Path to content data")
+    qbt_add.add_argument("--category", help="Optional qBT category")
+
+    qbt_monitor = qbt_sub.add_parser("monitor", help="Monitor qBT for completed downloads")
+    qbt_monitor.add_argument("--once", action="store_true", help="Run one scan and exit")
+
     return parser
 
 
@@ -197,12 +216,22 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_upload(cli)
     elif args.command == "check-dup":
         return cmd_check_dup(cli)
+    elif args.command == "activity":
+        return cmd_activity(cli)
     elif args.command == "uploads":
         if args.uploads_cmd == "list":
             return cmd_uploads_list(cli)
         elif args.uploads_cmd == "show":
             return cmd_uploads_show(cli)
         parser.parse_args(["uploads", "--help"])
+    elif args.command == "qbt":
+        if args.qbt_cmd == "test":
+            return cmd_qbt_test(cli)
+        elif args.qbt_cmd == "add":
+            return cmd_qbt_add(cli)
+        elif args.qbt_cmd == "monitor":
+            return cmd_qbt_monitor(cli)
+        parser.parse_args(["qbt", "--help"])
 
     return EXIT_SUCCESS
 

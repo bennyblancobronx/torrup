@@ -21,7 +21,7 @@ class TestIndexRoute:
     def test_index_contains_app_name(self, client):
         """Verify index page contains app name."""
         res = client.get("/")
-        assert b"Torrup" in res.data or b"TorrentLeech" in res.data
+        assert b"torrup" in res.data or b"TorrentLeech" in res.data
 
 
 class TestSettingsRoute:
@@ -682,7 +682,7 @@ class TestSettingsUpdate:
         """Verify basic settings can be updated."""
         res = client.post(
             "/api/settings",
-            json={"browse_base": "/new/browse/path"}
+            json={"output_dir": "/new/output/path"}
         )
         assert res.status_code == 200
         assert res.get_json()["success"] is True
@@ -873,7 +873,7 @@ class TestQueuePage:
         from src import routes as routes_module
 
         def mock_render(*args, **kwargs):
-            return f"Queue page: {kwargs.get('app_name', 'Torrup')}"
+            return f"Queue page: {kwargs.get('app_name', 'torrup')}"
 
         monkeypatch.setattr(routes_module, "render_template", mock_render)
 
@@ -897,7 +897,7 @@ class TestHistoryPage:
         from src import routes as routes_module
 
         def mock_render(*args, **kwargs):
-            return f"History page: {kwargs.get('app_name', 'Torrup')}"
+            return f"History page: {kwargs.get('app_name', 'torrup')}"
 
         monkeypatch.setattr(routes_module, "render_template", mock_render)
 

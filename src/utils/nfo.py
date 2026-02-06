@@ -16,7 +16,7 @@ def generate_nfo(
     release_name: str,
     out_dir: Path,
     media_type: str = "movies",
-    release_group: str = "Torrup",
+    release_group: str = "torrup",
     metadata: dict | None = None,
 ) -> Path:
     """Generate NFO file using template and mediainfo."""

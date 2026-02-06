@@ -1,6 +1,6 @@
-# Contributing to Torrup
+# Contributing to torrup
 
-Thank you for your interest in contributing to Torrup (Torrent Upload Tool).
+Thank you for your interest in contributing to torrup (Torrent Upload Tool).
 
 ## Getting Started
 

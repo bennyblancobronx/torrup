@@ -455,7 +455,8 @@ pre {
 
 .header-brand {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  gap: var(--space-2);
   margin-right: var(--space-8);
 }
 
@@ -508,7 +509,7 @@ pre {
 
 .nav-item:hover {
   background-color: rgba(0, 0, 0, 0.03);
-  color: var(--color-text);
+  color: var(--color-accent);
 }
 
 .nav-item.is-active {
@@ -517,10 +518,15 @@ pre {
   font-weight: var(--font-weight-medium);
 }
 
+.nav-item-settings {
+  margin-left: auto;
+}
+
 [data-theme="dark"] .nav-item:hover,
 @media (prefers-color-scheme: dark) {
   .nav-item:hover {
     background-color: rgba(255, 255, 255, 0.05);
+    color: var(--color-accent);
   }
 
   .nav-item.is-active {
@@ -1488,4 +1494,100 @@ select {
   .header-status {
     display: none;
   }
+}
+
+/* ============================================
+   CHECKBOX FIELD
+   ============================================ */
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.checkbox-field input[type="checkbox"] {
+  width: auto;
+  height: auto;
+}
+
+/* ============================================
+   PATH INPUT GROUP
+   ============================================ */
+
+.path-input-group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.path-input-group input {
+  flex: 1;
+}
+
+.path-input-group .btn {
+  flex-shrink: 0;
+}
+
+/* ============================================
+   DIRECTORY PICKER
+   ============================================ */
+
+.dir-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.dir-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-sm);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.dir-item:last-child {
+  border-bottom: none;
+}
+
+.dir-item:hover {
+  background-color: var(--color-accent-surface);
+}
+
+.dir-item-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dir-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dir-current-path {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  word-break: break-all;
+}
+
+.dir-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }

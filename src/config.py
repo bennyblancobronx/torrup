@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-APP_NAME = "Torrup"
-APP_VERSION = "0.1.4"
+APP_NAME = "torrup"
+APP_VERSION = "0.1.8"
 
 # Paths
 DB_PATH = Path(os.environ.get("TORRUP_DB_PATH", "./torrup.db"))
@@ -36,7 +36,7 @@ DEFAULT_TEMPLATES = {
     "books": "Title.Author.Year.Format-ReleaseGroup",
 }
 
-DEFAULT_RELEASE_GROUP = "Torrup"
+DEFAULT_RELEASE_GROUP = "torrup"
 
 DEFAULT_EXCLUDES = "torrents,downloads,tmp,trash,incomplete,processing"
 
@@ -61,7 +61,7 @@ NFO_TEMPLATES = {
 --------------------------------------------------------------------------------
 {mediainfo}
 --------------------------------------------------------------------------------
-  Uploaded with Torrup
+  Uploaded with torrup
   Generated: {timestamp}
 ================================================================================
 """,
@@ -80,7 +80,7 @@ NFO_TEMPLATES = {
 --------------------------------------------------------------------------------
 {mediainfo}
 --------------------------------------------------------------------------------
-  Uploaded with Torrup
+  Uploaded with torrup
   Generated: {timestamp}
 ================================================================================
 """,
@@ -98,7 +98,7 @@ NFO_TEMPLATES = {
 --------------------------------------------------------------------------------
 {mediainfo}
 --------------------------------------------------------------------------------
-  Uploaded with Torrup
+  Uploaded with torrup
   Generated: {timestamp}
 ================================================================================
 """,
@@ -118,7 +118,7 @@ NFO_TEMPLATES = {
   Total Size     : {size}
 
 --------------------------------------------------------------------------------
-  Uploaded with Torrup
+  Uploaded with torrup
   Generated: {timestamp}
 ================================================================================
 """,

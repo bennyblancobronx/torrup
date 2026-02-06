@@ -105,15 +105,13 @@ def init_db() -> None:
                 pass  # Already exists
 
         # Defaults
-        _ensure_setting(conn, "browse_base", "/volume/media")
         _ensure_setting(conn, "output_dir", str(DEFAULT_OUTPUT_DIR))
         _ensure_setting(conn, "exclude_dirs", DEFAULT_EXCLUDES)
         _ensure_setting(conn, "auto_scan_interval", "60")  # Minutes
         _ensure_setting(conn, "enable_auto_upload", "0")  # Safety first
 
         for media_type in MEDIA_TYPES:
-            base = get_setting(conn, "browse_base")
-            default_path = str(Path(base) / media_type)
+            default_path = str(Path("/volume/media") / media_type)
             default_category = CATEGORY_OPTIONS[media_type][0]["id"]
             conn.execute(
                 """
@@ -136,10 +134,24 @@ def init_db() -> None:
         _ensure_setting(conn, "qbt_user", QBT_DEFAULT_USER)
         _ensure_setting(conn, "qbt_pass", QBT_DEFAULT_PASS)
         _ensure_setting(conn, "qbt_auto_add", "0")  # Auto add to qBT after upload
-        _ensure_setting(conn, "qbt_tag", "Torrup")  # Tag for items added by Torrup
+        _ensure_setting(conn, "qbt_tag", "torrup")  # Tag for items added by torrup
         _ensure_setting(conn, "qbt_auto_source", "0")  # Monitor qBT for completed downloads to upload
         _ensure_setting(conn, "qbt_source_categories", "music,movies,tv") # Categories to monitor in qBT
         _ensure_setting(conn, "qbt_category_map", "")  # Optional map: media_type=qBTCategory
+
+        # TorrentLeech Preferences (Activity + Seeding Minimums)
+        _ensure_setting(conn, "tl_min_uploads_per_month", "10")
+        _ensure_setting(conn, "tl_min_seed_copies", "10")
+        _ensure_setting(conn, "tl_min_seed_days", "7")
+        _ensure_setting(conn, "tl_inactivity_warning_weeks", "3")
+        _ensure_setting(conn, "tl_absence_notice_weeks", "4")
+        _ensure_setting(conn, "tl_enforce_activity", "1")
+
+        # ntfy notification settings
+        _ensure_setting(conn, "ntfy_url", "")
+        _ensure_setting(conn, "ntfy_topic", "")
+        _ensure_setting(conn, "ntfy_enabled", "0")
+        _ensure_setting(conn, "tl_last_critical_state", "0")
 
         conn.commit()
 

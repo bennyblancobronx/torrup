@@ -4,7 +4,13 @@ import unittest
 from unittest.mock import MagicMock, patch, mock_open
 from pathlib import Path
 
-from src.utils.qbittorrent import get_qbt_client, add_to_qbt
+from src.utils.qbittorrent import (
+    add_to_qbt,
+    get_qbt_client,
+    map_media_type_to_qbt_category,
+    map_qbt_category_to_media_type,
+    parse_qbt_category_map,
+)
 
 class TestQBitTorrentUtils(unittest.TestCase):
     
@@ -15,7 +21,7 @@ class TestQBitTorrentUtils(unittest.TestCase):
         # Setup settings
         settings = {
             "qbt_enabled": "1",
-            "qbt_url": "http://localhost:8080",
+            "qbt_url": "localhost:8080",
             "qbt_user": "admin",
             "qbt_pass": "adminadmin"
         }
@@ -78,7 +84,7 @@ class TestQBitTorrentUtils(unittest.TestCase):
         mock_path_obj.parent = Path("/downloads")
         mock_path.return_value = mock_path_obj
         
-        mock_get_setting.return_value = "Torrup" # For qbt_tag
+        mock_get_setting.return_value = "torrup" # For qbt_tag
 
         # Execute
         result = add_to_qbt("/tmp/test.torrent", "/downloads/movie.mkv", category="movies")
@@ -88,7 +94,7 @@ class TestQBitTorrentUtils(unittest.TestCase):
         mock_client.torrents_add.assert_called()
         args, kwargs = mock_client.torrents_add.call_args
         self.assertEqual(kwargs['category'], "movies")
-        self.assertEqual(kwargs['tags'], "Torrup")
+        self.assertEqual(kwargs['tags'], "torrup")
 
     @patch("src.utils.qbittorrent.get_qbt_client")
     def test_add_to_qbt_no_client(self, mock_get_client):
@@ -108,3 +114,28 @@ class TestQBitTorrentUtils(unittest.TestCase):
         
         result = add_to_qbt("missing.torrent", "savepath")
         self.assertFalse(result)
+
+
+class TestQBitTorrentCategoryMap(unittest.TestCase):
+
+    def test_parse_qbt_category_map_empty(self):
+        self.assertEqual(parse_qbt_category_map(""), {})
+
+    def test_parse_qbt_category_map_json(self):
+        value = '{"movies": "Movies-HD", "music": "Music"}'
+        self.assertEqual(parse_qbt_category_map(value), {"movies": "Movies-HD", "music": "Music"})
+
+    def test_parse_qbt_category_map_csv(self):
+        value = "movies=Movies-HD,music=Music"
+        self.assertEqual(parse_qbt_category_map(value), {"movies": "Movies-HD", "music": "Music"})
+
+    def test_map_media_type_to_qbt_category(self):
+        value = "movies=Movies-HD,music=Music"
+        self.assertEqual(map_media_type_to_qbt_category("movies", value), "Movies-HD")
+        self.assertEqual(map_media_type_to_qbt_category("tv", value), "tv")
+
+    def test_map_qbt_category_to_media_type(self):
+        value = "movies=Movies-HD,music=Music"
+        self.assertEqual(map_qbt_category_to_media_type("Movies-HD", value), "movies")
+        self.assertEqual(map_qbt_category_to_media_type("music", value), "music")
+        self.assertIsNone(map_qbt_category_to_media_type("unknown", value))

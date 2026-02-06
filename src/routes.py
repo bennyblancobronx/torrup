@@ -173,7 +173,34 @@ def update_settings() -> tuple[Any, int]:
     data = request.json or {}
     with db() as conn:
         # Basic settings
-        for key in ["browse_base", "output_dir", "exclude_dirs", "release_group", "extract_metadata", "extract_thumbnails", "auto_scan_interval", "enable_auto_upload", "test_mode", "qbt_enabled", "qbt_url", "qbt_user", "qbt_pass", "qbt_auto_add", "qbt_tag", "qbt_auto_source", "qbt_source_categories", "qbt_category_map"]:
+        for key in [
+            "output_dir",
+            "exclude_dirs",
+            "release_group",
+            "extract_metadata",
+            "extract_thumbnails",
+            "auto_scan_interval",
+            "enable_auto_upload",
+            "test_mode",
+            "qbt_enabled",
+            "qbt_url",
+            "qbt_user",
+            "qbt_pass",
+            "qbt_auto_add",
+            "qbt_tag",
+            "qbt_auto_source",
+            "qbt_source_categories",
+            "qbt_category_map",
+            "tl_min_uploads_per_month",
+            "tl_min_seed_copies",
+            "tl_min_seed_days",
+            "tl_inactivity_warning_weeks",
+            "tl_absence_notice_weeks",
+            "tl_enforce_activity",
+            "ntfy_enabled",
+            "ntfy_url",
+            "ntfy_topic",
+        ]:
             if key in data:
                 set_setting(conn, key, str(data[key]))
 
@@ -221,6 +248,48 @@ def test_qbt_connection():
             return jsonify({"success": False, "error": "Failed to connect. Check logs or settings."}), 400
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route("/api/browse-dirs")
+@limiter.limit("60 per minute")
+def browse_dirs() -> tuple[Any, int]:
+    """Browse filesystem directories for path selection in settings."""
+    path_str = request.args.get("path", "")
+
+    if not path_str:
+        path_str = "/"
+
+    if ".." in path_str or not path_str.isprintable():
+        return jsonify({"error": "Invalid path"}), 400
+
+    path = Path(path_str)
+
+    if path.is_symlink():
+        return jsonify({"error": "Symlinks not allowed"}), 403
+
+    if not path.exists() or not path.is_dir():
+        return jsonify({"error": "Path not found"}), 404
+
+    dirs = []
+    try:
+        for item in sorted(path.iterdir()):
+            if item.is_symlink():
+                continue
+            if item.name.startswith("."):
+                continue
+            try:
+                if item.is_dir():
+                    dirs.append({"name": item.name, "path": str(item)})
+            except PermissionError:
+                continue
+    except PermissionError:
+        return jsonify({"error": "Permission denied"}), 403
+
+    return jsonify({
+        "path": str(path),
+        "parent": str(path.parent) if str(path) != "/" else None,
+        "dirs": dirs,
+    }), 200
 
 
 @bp.route("/api/browse")
@@ -309,3 +378,4 @@ def browse() -> tuple[Any, int]:
 
 # Queue routes are in src/routes_queue.py (split for file size compliance)
 import src.routes_queue  # noqa: F401, E402
+import src.routes_activity  # noqa: F401, E402

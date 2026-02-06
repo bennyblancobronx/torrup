@@ -38,7 +38,7 @@ def _scan_music(cli, artists_dir: Path, dry_run: bool) -> int:
     """Scan music library for missing releases."""
     
     with db() as conn:
-        release_group = get_setting(conn, "release_group") or "Torrup"
+        release_group = get_setting(conn, "release_group") or "torrup"
         default_cat = CATEGORY_OPTIONS["music"][0]["id"] # Audio
 
     count_found = 0

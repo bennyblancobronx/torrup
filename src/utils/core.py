@@ -60,7 +60,7 @@ def sanitize_release_name(name: str) -> str:
     return name or "unnamed"
 
 
-def generate_release_name(metadata: dict, media_type: str, release_group: str = "Torrup") -> str:
+def generate_release_name(metadata: dict, media_type: str, release_group: str = "torrup") -> str:
     """Generate a standardized release name based on metadata."""
     if media_type == "music":
         artist = sanitize_release_name(metadata.get("artist", "Unknown"))
@@ -71,7 +71,7 @@ def generate_release_name(metadata: dict, media_type: str, release_group: str = 
         bitrate = metadata.get("bitrate", "320")
         
         # Standard: Artist-Album-Year-Source-Format-Bitrate-Group
-        # E.g. Post.Malone-Beerbongs.And.Bentleys-2018-WEB-FLAC-24bit-Torrup
+        # E.g. Post.Malone-Beerbongs.And.Bentleys-2018-WEB-FLAC-24bit-torrup
         parts = [artist, album]
         if year:
             parts.append(str(year))

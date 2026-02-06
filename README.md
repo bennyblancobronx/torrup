@@ -1,4 +1,4 @@
-# Torrup - Torrent Upload Tool
+# torrup - Torrent Upload Tool
 
 Web UI + CLI for browsing media libraries, queuing items, generating torrents + NFOs, and uploading to trackers (starting with TorrentLeech support).
 
@@ -15,9 +15,10 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 - .torrent creation via mktorrent with private flag + source tag
 - Metadata extraction via exiftool (optional)
 - Thumbnail extraction via ffmpeg (optional)
-- CLI with 13 commands (browse, queue, prepare, upload, settings, etc.)
+- CLI with queue, upload, and qBT commands (browse, queue, prepare, upload, settings, qbt)
 - Health check endpoint (/health)
 - Configurable logging
+- qBitTorrent integration (auto-add after upload, optional auto-source monitor)
 
 ## Security
 
@@ -49,10 +50,43 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 | TORRUP_DB_PATH | No | SQLite DB path (default: ./torrup.db) |
 | TORRUP_OUTPUT_DIR | No | Output directory (default: ./output) |
 | TORRUP_RUN_WORKER | No | Run background queue worker (default: 1) |
+| QBT_URL | No | qBitTorrent WebUI URL (overrides setting) |
+| QBT_USER | No | qBitTorrent WebUI user (overrides setting) |
+| QBT_PASS | No | qBitTorrent WebUI password (overrides setting) |
 
 Generate a secret key:
 ```bash
 python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+## qBitTorrent Integration
+
+qBT is optional but production-ready when configured. You can enable it from the Settings UI or CLI.
+
+**Required settings:**
+- `qbt_enabled=1`
+- `qbt_url`
+- `qbt_user`
+- `qbt_pass`
+
+**Common settings:**
+- `qbt_auto_add=1` (auto-add after upload)
+- `qbt_tag` (default `torrup`)
+
+**Auto-source (optional):**
+- `qbt_auto_source=1`
+- `qbt_source_categories=music,movies,tv`
+- `qbt_category_map=movies=Movies-HD,music=Music` (optional mapping)
+
+**CLI examples:**
+```bash
+torrup settings set qbt_enabled 1
+torrup settings set qbt_url http://localhost:8080
+torrup settings set qbt_user admin
+torrup settings set qbt_pass adminadmin
+torrup settings set qbt_auto_add 1
+torrup settings set qbt_auto_source 1
+torrup settings set qbt_source_categories music,movies,tv
 ```
 
 ## Run locally

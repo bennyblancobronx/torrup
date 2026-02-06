@@ -74,7 +74,7 @@ All category defaults are editable in settings.
 - Output directory
 - Exclude folder list
 - Naming templates
-- qBittorrent integration is deferred
+- qBittorrent integration is partial (auto-add + monitor exist; watch folders/staging still deferred)
 
 ## CLI Surface (planned)
 
@@ -125,7 +125,7 @@ Planned commands:
 - **Compose wiring**: service name, build context, container name, ports, restart policy, and healthcheck.
 - **Network**: attach to `vpn-stack` and route through gluetun.
 - **Volumes**: library roots read-only, output dir read-write, DB location persisted.
-- **qBittorrent**: deferred (no watch folder or staging integration in v0.1.x).
+- **qBittorrent**: partial integration (auto-add/monitor). Watch folder or staging integration is still deferred in v0.1.x.
 - **Environment**: `TL_ANNOUNCE_KEY`, `SECRET_KEY`, `TORRUP_DB_PATH`, `TORRUP_OUTPUT_DIR`, `TORRUP_RUN_WORKER`.
 - **Dependencies**: install `mediainfo` and `mktorrent` in the image.
 - **Access control**: GUI-only in v0.1.x; consider CLI when implemented.

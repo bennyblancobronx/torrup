@@ -256,8 +256,22 @@ document.addEventListener('click', (e) => {
   }
 });
 
+async function updateMonthlyCounter() {
+  try {
+    const res = await fetch('/api/activity/health');
+    const h = await res.json();
+    const el = document.getElementById('monthly-count');
+    if (el) {
+      el.textContent = `This month: ${h.uploads} / ${h.minimum}`;
+    }
+  } catch (err) {
+    console.error('Monthly counter failed:', err);
+  }
+}
+
 // Initial load
 loadHistory();
+updateMonthlyCounter();
 
 // Theme toggle
 document.getElementById('theme-toggle').onclick = () => {

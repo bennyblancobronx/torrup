@@ -1,5 +1,5 @@
 """
-Torrup - Torrent Upload Tool
+torrup - Torrent Upload Tool
 Simple web UI for creating and uploading torrents.
 """
 from __future__ import annotations
@@ -49,7 +49,7 @@ def check_auth():
             return Response(
                 "Authentication required",
                 401,
-                {"WWW-Authenticate": 'Basic realm="Torrup"'},
+                {"WWW-Authenticate": 'Basic realm="torrup"'},
             )
 
 
@@ -98,5 +98,5 @@ if RUN_WORKER:
     logger.info("Background qBitTorrent monitor worker thread started")
 
 if __name__ == "__main__":
-    logger.info("Starting Torrup application on port 5001")
+    logger.info("Starting torrup application on port 5001")
     app.run(host="0.0.0.0", port=5001, debug=False)

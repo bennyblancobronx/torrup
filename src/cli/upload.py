@@ -44,7 +44,7 @@ def cmd_prepare(cli) -> int:
 
         release_name = sanitize_release_name(row["release_name"])
         out_dir = Path(output_dir) if output_dir else get_output_dir(conn)
-        release_group = get_setting(conn, "release_group") or "Torrup"
+        release_group = get_setting(conn, "release_group") or "torrup"
         media_type = row["media_type"]
         tags = row["tags"]
 

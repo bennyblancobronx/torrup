@@ -1,4 +1,4 @@
-"""Pytest fixtures for Torrup tests."""
+"""Pytest fixtures for torrup tests."""
 
 import importlib
 

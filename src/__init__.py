@@ -1,4 +1,4 @@
-"""Torrup - Torrent Upload Tool source package."""
+"""torrup - Torrent Upload Tool source package."""
 
 from src.config import APP_NAME, APP_VERSION
 

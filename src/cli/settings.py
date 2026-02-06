@@ -15,7 +15,7 @@ def cmd_settings_get(cli) -> int:
     with db() as conn:
         if key:
             value = get_setting(conn, key)
-            if not value and key not in ("browse_base", "output_dir", "exclude_dirs", "release_group"):
+            if not value and key not in ("output_dir", "exclude_dirs", "release_group"):
                 return cli.error(f"Setting not found: {key}", EXIT_NOT_FOUND)
             cli.output({"key": key, "value": value}, value)
         else:

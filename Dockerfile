@@ -1,8 +1,8 @@
 FROM python:3.11.7-slim
 
 LABEL maintainer="project-maintainer" \
-      version="0.1.4" \
-      description="Torrup - Torrent Upload Tool"
+      version="0.1.7" \
+      description="torrup - Torrent Upload Tool"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     mediainfo \
@@ -30,7 +30,8 @@ COPY --chown=appuser:appuser static ./static/
 ENV TORRUP_RUN_WORKER=1 \
     TORRUP_DB_PATH=/app/data/torrup.db \
     TORRUP_OUTPUT_DIR=/app/output \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 5001
 

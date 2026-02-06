@@ -197,7 +197,7 @@ def _enqueue_items(items: list[dict[str, Any]]) -> list[int]:
                 tvmazeid = tvmazeid or meta.get("tvmazeid")
 
                 if not item.get("release_name") and meta:
-                    release_group = get_setting(conn, "release_group") or "Torrup"
+                    release_group = get_setting(conn, "release_group") or "torrup"
                     generated = generate_release_name(meta, media_type, release_group)
                     if generated and generated != "unnamed" and "Unknown" not in generated:
                         release_name = generated

@@ -67,8 +67,6 @@ torrup settings get --json
 | `output_dir` | string | Output directory for torrents/NFOs |
 | `exclude_dirs` | string | Comma-separated folders to exclude |
 | `templates` | object | Naming templates per media type |
-| `qbt_content_dir` | string | qBittorrent content folder |
-| `qbt_watch_dirs` | object | Watch folders per media type |
 | `qbt_enabled` | string | Enable qBitTorrent (1/0) |
 | `qbt_url` | string | qBitTorrent WebUI URL |
 | `qbt_user` | string | qBitTorrent username |
@@ -77,6 +75,7 @@ torrup settings get --json
 | `qbt_auto_source` | string | Monitor qBT for completed downloads (1/0) |
 | `qbt_tag` | string | Tag for Torrup-added torrents |
 | `qbt_source_categories` | string | Categories to monitor (comma-separated) |
+| `qbt_category_map` | string | Optional map of media_type to qBT category (CSV or JSON) |
 
 **Examples:**
 
@@ -131,6 +130,67 @@ torrup settings set templates.movies "Name.Year.Resolution.Source-Group"
 - 0: Success
 - 2: Invalid key or value
 - 3: Setting key not found
+
+---
+
+## qBitTorrent Commands
+
+### torrup qbt test
+
+Test qBitTorrent connection.
+
+```bash
+torrup qbt test
+```
+
+**Exit Codes:**
+- 0: Success
+- 2: qBT disabled
+- 5: API or connection error
+
+---
+
+### torrup qbt add
+
+Add a torrent to qBitTorrent.
+
+```bash
+torrup qbt add --torrent /path/file.torrent --save-path /path/content --category movies
+```
+
+**Flags:**
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--torrent` | Yes | Path to `.torrent` file |
+| `--save-path` | Yes | Path to the content data |
+| `--category` | No | qBT category |
+
+**Exit Codes:**
+- 0: Success
+- 2: Invalid args or qBT disabled
+- 5: API or connection error
+
+---
+
+### torrup qbt monitor
+
+Monitor qBitTorrent for completed downloads and add to queue.
+
+```bash
+# Run one scan and exit
+torrup qbt monitor --once
+```
+
+**Flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--once` | Run a single scan and exit |
+
+**Exit Codes:**
+- 0: Success
+- 2: qBT auto-source disabled
 
 ---
 
