@@ -5,177 +5,243 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>{{ app_name }} History</title>
-  <style>
-    :root {
-      --bg: #0f0f12; --bg-panel: #15151b; --bg-input: #1e1e27;
-      --border: #242430; --border-light: #2d2d3a;
-      --text: #e9e9ef; --text-muted: #9aa0a6; --text-heading: #c2c2d1;
-      --accent: #8be9fd; --hover: #1c1c25; --selected: #1e2530;
-      --status-success-bg: #1f4d36; --status-success: #4ade80;
-      --status-failed-bg: #5a1e1e; --status-failed: #f87171;
-      --status-warn-bg: #5a4b1e; --status-warn: #fbbf24;
-      --status-progress: #2a3642;
-    }
-    [data-theme="light"] {
-      --bg: #f5f5f7; --bg-panel: #ffffff; --bg-input: #f0f0f2;
-      --border: #d0d0d8; --border-light: #c5c5cd;
-      --text: #1a1a1a; --text-muted: #666670; --text-heading: #333340;
-      --accent: #0077cc; --hover: #e8e8ec; --selected: #d8e8f0;
-      --status-success-bg: #d0f0d8; --status-success: #1a7f37;
-      --status-failed-bg: #f8d0d0; --status-failed: #cf222e;
-      --status-warn-bg: #f0e8c8; --status-warn: #9a6700;
-      --status-progress: #d0e8f0;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Iosevka", "IBM Plex Sans", "Segoe UI", sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
-    }
-    a { color: var(--accent); text-decoration: none; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    h1 { font-size: 1.6rem; margin-bottom: 6px; }
-    .sub { color: var(--text-muted); margin-bottom: 18px; }
-    .panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--text-heading); }
-    .row { display: flex; gap: 12px; flex-wrap: wrap; }
-    .col { flex: 1; min-width: 260px; }
-    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    select, input, button {
-      background: var(--bg-input); color: var(--text); border: 1px solid var(--border-light); border-radius: 6px;
-      padding: 8px 10px; font-size: 0.95rem;
-    }
-    button { cursor: pointer; font-weight: 600; }
-    button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-    button.ghost { background: transparent; }
-    .muted { color: var(--text-muted); font-size: 0.85rem; }
-    .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .theme-toggle { cursor: pointer; background: none; border: none; padding: 4px 8px; display: flex; align-items: center; }
-
-    /* Tab switcher */
-    .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
-    .tab {
-      background: transparent; color: var(--text-muted);
-      border: 1px solid transparent; border-radius: 6px;
-      padding: 8px 16px; font-size: 0.95rem; cursor: pointer;
-      transition: all 0.1s ease-out;
-    }
-    .tab:hover { background: var(--hover); color: var(--text); }
-    .tab.active { background: var(--bg-input); color: var(--text); border-color: var(--border-light); }
-
-    /* Filters */
-    .filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
-    .filter-group { display: flex; gap: 6px; align-items: center; }
-    .filter-group label { color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; }
-    .filter-group select { min-width: 120px; }
-
-    /* History table */
-    .history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    .history-table th, .history-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
-    .history-table th { font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-    .history-table tr { cursor: pointer; }
-    .history-table tr:hover td { background: var(--hover); }
-    .history-table tr.selected td { background: var(--selected); }
-    .release-name { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tl-id { font-family: monospace; color: var(--accent); }
-    .tl-id.none { color: var(--text-muted); }
-
-    /* Status badges */
-    .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; }
-    .status.success { background: var(--status-success-bg); color: var(--status-success); }
-    .status.failed { background: var(--status-failed-bg); color: var(--status-failed); }
-    .status.duplicate { background: var(--status-warn-bg); color: var(--status-warn); }
-
-    /* Details panel */
-    .details-panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 16px; display: none; }
-    .details-panel.visible { display: block; }
-    .details-panel h3 { font-size: 1rem; margin-bottom: 16px; color: var(--text); word-break: break-all; }
-    .details-grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px; margin-bottom: 16px; }
-    .details-label { color: var(--text-muted); font-size: 0.85rem; }
-    .details-value { color: var(--text); font-size: 0.9rem; word-break: break-all; }
-    .files-list { margin-top: 8px; }
-    .files-list h4 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px; }
-    .file-item { display: flex; gap: 8px; align-items: center; padding: 6px 0; font-size: 0.85rem; font-family: monospace; }
-    .file-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
-    .file-status.ok { background: var(--status-success-bg); color: var(--status-success); }
-    .file-status.missing { background: var(--status-failed-bg); color: var(--status-failed); }
-
-    /* Activity log */
-    .activity-log { max-height: 500px; overflow-y: auto; }
-    .activity-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    .activity-time { color: var(--text-muted); font-family: monospace; font-size: 0.8rem; min-width: 140px; }
-    .activity-action { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; text-transform: uppercase; min-width: 60px; text-align: center; }
-    .activity-action.add { background: var(--status-success-bg); color: var(--status-success); }
-    .activity-action.edit { background: var(--status-progress); color: var(--accent); }
-    .activity-action.delete { background: var(--status-failed-bg); color: var(--status-failed); }
-    .activity-action.upload { background: var(--status-progress); color: var(--accent); }
-    .activity-action.success { background: var(--status-success-bg); color: var(--status-success); }
-    .activity-action.failed { background: var(--status-failed-bg); color: var(--status-failed); }
-    .activity-message { flex: 1; }
-
-    .empty-state { text-align: center; padding: 48px 16px; color: var(--text-muted); }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   <script>
     (function() {
       const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
+  <style>
+    /* Page-specific styles */
+    .release-name {
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tl-id {
+      font-family: var(--font-family);
+      font-weight: var(--font-weight-light);
+      color: var(--color-accent);
+    }
+
+    .tl-id.none {
+      color: var(--color-text-muted);
+    }
+
+    .table tr {
+      cursor: pointer;
+    }
+
+    .table tr.selected td {
+      background-color: var(--color-accent-surface);
+    }
+
+    /* Details panel */
+    .details-panel {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-top: var(--space-4);
+      display: none;
+    }
+
+    .details-panel.visible {
+      display: block;
+    }
+
+    .details-panel h3 {
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-medium);
+      margin-bottom: var(--space-4);
+      word-break: break-all;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: var(--space-2) var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .details-label {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+    }
+
+    .details-value {
+      font-size: var(--font-size-base);
+      word-break: break-all;
+    }
+
+    .files-list h4 {
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    .file-item {
+      display: flex;
+      gap: var(--space-2);
+      align-items: center;
+      padding: var(--space-1) 0;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-light);
+    }
+
+    .file-status {
+      font-size: var(--font-size-xs);
+      padding: 0 var(--space-2);
+      border-radius: var(--radius-sm);
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .file-status.ok {
+      background-color: var(--color-success-surface);
+      color: var(--color-success-foreground);
+    }
+
+    .file-status.missing {
+      background-color: var(--color-error-surface);
+      color: var(--color-error-foreground);
+    }
+
+    /* Activity log */
+    .activity-log {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: var(--space-3);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--color-border);
+      font-size: var(--font-size-base);
+    }
+
+    .activity-time {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-light);
+      min-width: 140px;
+    }
+
+    .activity-action {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      padding: 0 var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      text-transform: uppercase;
+      min-width: 60px;
+      justify-content: center;
+    }
+
+    .activity-action.add,
+    .activity-action.success {
+      background-color: var(--color-success-surface);
+      color: var(--color-success-foreground);
+    }
+
+    .activity-action.edit,
+    .activity-action.upload {
+      background-color: var(--color-info-surface);
+      color: var(--color-info-foreground);
+    }
+
+    .activity-action.delete,
+    .activity-action.failed {
+      background-color: var(--color-error-surface);
+      color: var(--color-error-foreground);
+    }
+
+    .activity-action.duplicate {
+      background-color: var(--color-warning-surface);
+      color: var(--color-warning-foreground);
+    }
+
+    .activity-message {
+      flex: 1;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1>{{ app_name }} History</h1>
-        <div class="sub">v{{ app_version }} — Upload history and activity logs</div>
-      </div>
-      <div class="actions">
-        <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-        <a href="/">Dashboard</a>
-        <a href="/settings">Settings</a>
-      </div>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <a href="/" class="header-logo">{{ app_name }}</a>
+      <span class="header-version">v{{ app_version }}</span>
+    </div>
+    <nav class="header-nav">
+      <a href="/" class="nav-item">Dashboard</a>
+      <a href="/browse" class="nav-item">Browse</a>
+      <a href="/queue" class="nav-item">Queue</a>
+      <a href="/history" class="nav-item is-active">History</a>
+      <a href="/settings" class="nav-item">Settings</a>
+    </nav>
+    <button class="btn btn-ghost btn-sm" id="theme-toggle" title="Toggle light/dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <div class="header-status">
+      <span class="status-dot status-dot-success" id="worker-status"></span>
+      <span>Worker</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container page">
+    <div class="page-header">
+      <h1 class="page-title">History</h1>
     </div>
 
-    <div class="panel">
+    <div class="card mb-6">
       <div class="tabs">
-        <button class="tab active" data-tab="uploads">Uploads</button>
+        <button class="tab is-active" data-tab="uploads">Uploads</button>
         <button class="tab" data-tab="activity">Activity</button>
       </div>
 
-      <div class="filters">
-        <div class="filter-group">
-          <label for="filter-status">Status:</label>
-          <select id="filter-status">
+      <div class="flex items-center gap-4 flex-wrap mb-4">
+        <div class="flex items-center gap-2">
+          <label for="filter-status" class="form-label mb-0">Status:</label>
+          <select id="filter-status" style="width: auto; min-width: 120px;">
             <option value="all">All</option>
             <option value="success">Success</option>
             <option value="failed">Failed</option>
             <option value="duplicate">Duplicate</option>
           </select>
         </div>
-        <div class="filter-group">
-          <label for="filter-date">Date:</label>
-          <select id="filter-date">
+        <div class="flex items-center gap-2">
+          <label for="filter-date" class="form-label mb-0">Date:</label>
+          <select id="filter-date" style="width: auto; min-width: 120px;">
             <option value="all">All Time</option>
             <option value="7" selected>Last 7 days</option>
             <option value="30">Last 30 days</option>
             <option value="90">Last 90 days</option>
           </select>
         </div>
-        <div class="filter-group">
-          <label for="filter-type">Type:</label>
-          <select id="filter-type">
+        <div class="flex items-center gap-2">
+          <label for="filter-type" class="form-label mb-0">Type:</label>
+          <select id="filter-type" style="width: auto; min-width: 120px;">
             <option value="all">All</option>
             {% for mt in media_types %}
             <option value="{{ mt }}">{{ mt }}</option>
             {% endfor %}
           </select>
         </div>
-        <button class="ghost" id="refresh">Refresh</button>
+        <button class="btn btn-ghost btn-sm" id="refresh">Refresh</button>
       </div>
 
       <!-- Uploads Tab Content -->
       <div id="uploads-content">
-        <table class="history-table">
+        <table class="table">
           <thead>
             <tr>
               <th>Date</th>
@@ -226,290 +292,12 @@
         <div id="details-files"></div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const categoryOptions = {{ category_options | tojson }};
-
-    let currentTab = 'uploads';
-    let historyData = [];
-    let selectedItemId = null;
-
-    function csrfHeaders() {
-      return csrfToken ? { 'X-CSRFToken': csrfToken } : {};
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text || '';
-      return div.innerHTML;
-    }
-
-    function formatDate(dateStr) {
-      if (!dateStr) return '--';
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('en-CA');
-    }
-
-    function formatDateTime(dateStr) {
-      if (!dateStr) return '--';
-      const d = new Date(dateStr);
-      return d.toLocaleString('en-CA', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
-    }
-
-    function getCategoryLabel(mediaType, categoryId) {
-      const options = categoryOptions[mediaType] || [];
-      const found = options.find(o => o.id === categoryId || o.id === String(categoryId));
-      return found ? found.label : categoryId;
-    }
-
-    function statusBadge(status) {
-      const normalized = (status || '').toLowerCase();
-      return `<span class="status ${normalized}">${normalized || 'unknown'}</span>`;
-    }
-
-    function filterByDate(items, days) {
-      if (days === 'all') return items;
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - parseInt(days, 10));
-      return items.filter(item => {
-        const itemDate = new Date(item.updated_at || item.created_at);
-        return itemDate >= cutoff;
-      });
-    }
-
-    function filterByStatus(items, status) {
-      if (status === 'all') return items;
-      return items.filter(item => item.status === status);
-    }
-
-    function filterByType(items, mediaType) {
-      if (mediaType === 'all') return items;
-      return items.filter(item => item.media_type === mediaType);
-    }
-
-    function applyFilters(items) {
-      const statusFilter = document.getElementById('filter-status').value;
-      const dateFilter = document.getElementById('filter-date').value;
-      const typeFilter = document.getElementById('filter-type').value;
-
-      let filtered = items;
-      filtered = filterByStatus(filtered, statusFilter);
-      filtered = filterByDate(filtered, dateFilter);
-      filtered = filterByType(filtered, typeFilter);
-
-      return filtered;
-    }
-
-    async function loadHistory() {
-      try {
-        const res = await fetch('/api/queue');
-        const allItems = await res.json();
-
-        // Filter to only completed statuses (success, failed, duplicate)
-        historyData = allItems.filter(item =>
-          ['success', 'failed', 'duplicate'].includes(item.status)
-        );
-
-        // Sort by updated_at descending (most recent first)
-        historyData.sort((a, b) => {
-          const dateA = new Date(a.updated_at || a.created_at || 0);
-          const dateB = new Date(b.updated_at || b.created_at || 0);
-          return dateB - dateA;
-        });
-
-        renderHistory();
-      } catch (err) {
-        console.error('Failed to load history:', err);
-      }
-    }
-
-    function renderHistory() {
-      const tbody = document.getElementById('history-tbody');
-      const emptyState = document.getElementById('empty-uploads');
-
-      const filtered = applyFilters(historyData);
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = '';
-        emptyState.style.display = 'block';
-        return;
-      }
-
-      emptyState.style.display = 'none';
-      tbody.innerHTML = filtered.map(item => `
-        <tr data-id="${item.id}" class="${selectedItemId === item.id ? 'selected' : ''}">
-          <td>${formatDate(item.updated_at || item.created_at)}</td>
-          <td class="release-name" title="${escapeHtml(item.release_name)}">${escapeHtml(item.release_name)}</td>
-          <td>${statusBadge(item.status)}</td>
-          <td class="tl-id ${item.tl_id ? '' : 'none'}">${item.tl_id ? '#' + item.tl_id : '--'}</td>
-        </tr>
-      `).join('');
-
-      // Add click handlers
-      tbody.querySelectorAll('tr').forEach(row => {
-        row.addEventListener('click', () => showDetails(parseInt(row.dataset.id, 10)));
-      });
-    }
-
-    function showDetails(itemId) {
-      const item = historyData.find(i => i.id === itemId);
-      if (!item) return;
-
-      selectedItemId = itemId;
-      renderHistory(); // Update selection highlight
-
-      const panel = document.getElementById('details-panel');
-      document.getElementById('details-title').textContent = item.release_name;
-      document.getElementById('details-tl-id').textContent = item.tl_id ? '#' + item.tl_id : '--';
-      document.getElementById('details-category').textContent = getCategoryLabel(item.media_type, item.category);
-      document.getElementById('details-tags').textContent = item.tags || '--';
-      document.getElementById('details-timestamp').textContent = formatDateTime(item.updated_at || item.created_at);
-      document.getElementById('details-path').textContent = item.path || '--';
-
-      // Render generated files (inferred from typical Torrup output)
-      const filesContainer = document.getElementById('details-files');
-      const baseName = item.release_name || 'release';
-      const files = [
-        { name: baseName + '.torrent', status: item.status === 'success' ? 'ok' : 'missing' },
-        { name: baseName + '.nfo', status: item.status === 'success' ? 'ok' : 'missing' },
-        { name: baseName + '.xml', status: item.status === 'success' ? 'ok' : 'missing' }
-      ];
-
-      filesContainer.innerHTML = files.map(f => `
-        <div class="file-item">
-          <span class="file-status ${f.status}">${f.status.toUpperCase()}</span>
-          <span>${escapeHtml(f.name)}</span>
-        </div>
-      `).join('');
-
-      panel.classList.add('visible');
-    }
-
-    function hideDetails() {
-      selectedItemId = null;
-      document.getElementById('details-panel').classList.remove('visible');
-      renderHistory();
-    }
-
-    // Activity log (simulated from queue data since /api/activity doesn't exist)
-    function renderActivity() {
-      const logContainer = document.getElementById('activity-log');
-      const emptyState = document.getElementById('empty-activity');
-
-      // Generate activity entries from history data
-      const activities = [];
-      historyData.forEach(item => {
-        // Add entry for final status
-        activities.push({
-          time: item.updated_at || item.created_at,
-          action: item.status,
-          message: item.release_name + (item.message ? ': ' + item.message : '')
-        });
-      });
-
-      // Sort by time descending
-      activities.sort((a, b) => new Date(b.time) - new Date(a.time));
-
-      // Apply date filter
-      const dateFilter = document.getElementById('filter-date').value;
-      const filtered = dateFilter === 'all' ? activities : activities.filter(a => {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - parseInt(dateFilter, 10));
-        return new Date(a.time) >= cutoff;
-      });
-
-      if (filtered.length === 0) {
-        logContainer.innerHTML = '';
-        emptyState.style.display = 'block';
-        return;
-      }
-
-      emptyState.style.display = 'none';
-      logContainer.innerHTML = filtered.map(a => `
-        <div class="activity-item">
-          <span class="activity-time">${formatDateTime(a.time)}</span>
-          <span class="activity-action ${a.action}">${a.action}</span>
-          <span class="activity-message">${escapeHtml(a.message)}</span>
-        </div>
-      `).join('');
-    }
-
-    function switchTab(tab) {
-      currentTab = tab;
-
-      // Update tab buttons
-      document.querySelectorAll('.tab').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tab);
-      });
-
-      // Show/hide content
-      document.getElementById('uploads-content').style.display = tab === 'uploads' ? 'block' : 'none';
-      document.getElementById('activity-content').style.display = tab === 'activity' ? 'block' : 'none';
-
-      // Hide details when switching tabs
-      hideDetails();
-
-      // Re-render appropriate content
-      if (tab === 'uploads') {
-        renderHistory();
-      } else {
-        renderActivity();
-      }
-    }
-
-    // Event listeners
-    document.querySelectorAll('.tab').forEach(btn => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-    });
-
-    document.getElementById('filter-status').addEventListener('change', () => {
-      if (currentTab === 'uploads') renderHistory();
-    });
-
-    document.getElementById('filter-date').addEventListener('change', () => {
-      if (currentTab === 'uploads') {
-        renderHistory();
-      } else {
-        renderActivity();
-      }
-    });
-
-    document.getElementById('filter-type').addEventListener('change', () => {
-      if (currentTab === 'uploads') renderHistory();
-    });
-
-    document.getElementById('refresh').addEventListener('click', loadHistory);
-
-    // Close details panel when clicking outside
-    document.addEventListener('click', (e) => {
-      const panel = document.getElementById('details-panel');
-      const table = document.querySelector('.history-table');
-      if (panel.classList.contains('visible') &&
-          !panel.contains(e.target) &&
-          !table.contains(e.target)) {
-        hideDetails();
-      }
-    });
-
-    // Initial load
-    loadHistory();
-
-    // Theme toggle
-    document.getElementById('theme-toggle').onclick = () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-    };
+    window.csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    window.categoryOptions = {{ category_options | tojson }};
   </script>
+  <script src="{{ url_for('static', filename='js/history.js') }}"></script>
 </body>
 </html>

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.5] - 2026-02-06
 
+### Changed
+- **Crisp Design Language**: Converted all templates (index, queue, history, settings) from inline CSS with Iosevka font to Crisp design system (CrispByYosi font, external CSS, unified header/nav)
+- **JS Extraction**: Moved queue and history page JavaScript into separate static files (static/js/queue.js, static/js/history.js) to keep templates under 400 lines
+
 ### Added
 - **qBitTorrent Integration**:
     - Auto-seed: Automatically add uploaded torrents to qBitTorrent for seeding.
@@ -17,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `qbt_monitor_worker` for background qBitTorrent polling.
     - Case-insensitive category matching for automated workflows.
 - **Tests**: New test suite for qBitTorrent utility functions (`tests/test_qbittorrent.py`).
+ - **Testing**: `pytest.ini` to set `pythonpath=.` and exclude `reference/old-plugin` from test discovery.
 
 ## [0.1.4] - 2026-02-06
 

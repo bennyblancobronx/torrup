@@ -5,112 +5,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>{{ app_name }} - Queue</title>
-  <style>
-    :root {
-      --bg: #0f0f12; --bg-panel: #15151b; --bg-input: #1e1e27; --bg-edit: #1a1a22;
-      --border: #242430; --border-light: #2d2d3a;
-      --text: #e9e9ef; --text-muted: #9aa0a6; --text-heading: #c2c2d1;
-      --accent: #8be9fd; --accent-hover: #6dd5ed; --hover: #1c1c25;
-      --status-queued: #2a2a36; --status-progress: #2a3642;
-      --status-success-bg: #1f4d36; --status-success: #4ade80;
-      --status-failed-bg: #5a1e1e; --status-failed: #f87171;
-      --status-warn-bg: #5a4b1e; --status-warn: #fbbf24;
-    }
-    [data-theme="light"] {
-      --bg: #f5f5f7; --bg-panel: #ffffff; --bg-input: #f0f0f2; --bg-edit: #f8f8fa;
-      --border: #d0d0d8; --border-light: #c5c5cd;
-      --text: #1a1a1a; --text-muted: #666670; --text-heading: #333340;
-      --accent: #0077cc; --accent-hover: #005fa3; --hover: #e8e8ec;
-      --status-queued: #e0e0e5; --status-progress: #d0e8f0;
-      --status-success-bg: #d0f0d8; --status-success: #1a7f37;
-      --status-failed-bg: #f8d0d0; --status-failed: #cf222e;
-      --status-warn-bg: #f0e8c8; --status-warn: #9a6700;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Iosevka", "IBM Plex Sans", "Segoe UI", sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
-    }
-    a { color: var(--accent); text-decoration: none; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    h1 { font-size: 1.6rem; margin-bottom: 6px; }
-    .sub { color: var(--text-muted); margin-bottom: 18px; }
-    .panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--text-heading); }
-    .row { display: flex; gap: 12px; flex-wrap: wrap; }
-    .col { flex: 1; min-width: 260px; }
-    .field { margin-bottom: 12px; }
-    label { display: block; margin-bottom: 6px; color: var(--text-muted); }
-    input, textarea, select, button {
-      background: var(--bg-input); color: var(--text); border: 1px solid var(--border-light); border-radius: 6px;
-      padding: 8px 10px; font-size: 0.95rem;
-    }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
-    button { cursor: pointer; font-weight: 600; }
-    button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-    button.primary:hover { background: var(--accent-hover); }
-    button.ghost { background: transparent; }
-    button.ghost:hover { background: var(--bg-input); }
-    button.sm { padding: 4px 8px; font-size: 0.8rem; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
-    th { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    tr:hover td { background: var(--hover); }
-    .muted { color: var(--text-muted); font-size: 0.85rem; }
-    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .filter-tabs { display: flex; gap: 4px; }
-    .filter-tabs button { padding: 6px 12px; }
-    .filter-tabs button.active { background: var(--status-queued); color: var(--text); }
-    .status { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-    .status.queued { background: var(--status-queued); color: var(--text-muted); }
-    .status.preparing { background: var(--status-progress); color: var(--accent); }
-    .status.uploading { background: var(--status-progress); color: var(--accent); }
-    .status.success { background: var(--status-success-bg); color: var(--status-success); }
-    .status.failed { background: var(--status-failed-bg); color: var(--status-failed); }
-    .status.duplicate { background: var(--status-warn-bg); color: var(--status-warn); }
-    .actions-cell { display: flex; gap: 4px; }
-    .edit-panel { background: var(--bg-edit); border: 1px solid var(--border-light); border-radius: 8px; padding: 16px; margin-top: 16px; display: none; }
-    .edit-panel.visible { display: block; }
-    .edit-panel h3 { font-size: 1rem; margin-bottom: 12px; color: var(--text-heading); }
-    .edit-actions { display: flex; gap: 10px; margin-top: 12px; }
-    .hint { color: var(--text-muted); font-size: 0.85rem; margin-top: 12px; }
-    .release-name { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .auto-refresh { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 0.85rem; }
-    .auto-refresh input { width: auto; }
-    .theme-toggle { cursor: pointer; background: none; border: none; padding: 4px 8px; display: flex; align-items: center; }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   <script>
     (function() {
       const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
+  <style>
+    /* Page-specific styles */
+    .filter-tabs {
+      display: flex;
+      gap: var(--space-1);
+    }
+
+    .filter-tabs .tab {
+      border-bottom: none;
+      margin-bottom: 0;
+      border-radius: var(--radius-md);
+    }
+
+    .release-name {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .auto-refresh {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+      cursor: pointer;
+    }
+
+    .auto-refresh input {
+      width: auto;
+      height: auto;
+    }
+
+    .edit-panel {
+      background-color: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-top: var(--space-4);
+      display: none;
+    }
+
+    .edit-panel.visible {
+      display: block;
+    }
+
+    .edit-panel h3 {
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-medium);
+      margin-bottom: var(--space-3);
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1>{{ app_name }} - Upload Queue</h1>
-        <div class="sub">v{{ app_version }} - Manage pending and active uploads</div>
-      </div>
-      <div class="controls">
-        <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-        <a href="/">Dashboard</a>
-        <a href="/settings">Settings</a>
-      </div>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <a href="/" class="header-logo">{{ app_name }}</a>
+      <span class="header-version">v{{ app_version }}</span>
+    </div>
+    <nav class="header-nav">
+      <a href="/" class="nav-item">Dashboard</a>
+      <a href="/browse" class="nav-item">Browse</a>
+      <a href="/queue" class="nav-item is-active">Queue</a>
+      <a href="/history" class="nav-item">History</a>
+      <a href="/settings" class="nav-item">Settings</a>
+    </nav>
+    <button class="btn btn-ghost btn-sm" id="theme-toggle" title="Toggle light/dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <div class="header-status">
+      <span class="status-dot status-dot-success" id="worker-status"></span>
+      <span>Worker</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container page">
+    <div class="page-header">
+      <h1 class="page-title">Upload Queue</h1>
     </div>
 
-    <div class="panel">
-      <div class="controls" style="margin-bottom: 16px;">
+    <div class="card mb-6">
+      <div class="flex items-center gap-4 flex-wrap mb-4">
         <div class="filter-tabs">
-          <button class="ghost active" data-filter="all">All</button>
-          <button class="ghost" data-filter="queued">Queued</button>
-          <button class="ghost" data-filter="uploading">Uploading</button>
-          <button class="ghost" data-filter="failed">Failed</button>
+          <button class="tab is-active" data-filter="all">All</button>
+          <button class="tab" data-filter="queued">Queued</button>
+          <button class="tab" data-filter="uploading">Uploading</button>
+          <button class="tab" data-filter="failed">Failed</button>
         </div>
-        <select id="status-filter">
+        <select id="status-filter" style="width: auto; min-width: 140px;">
           <option value="all">All Statuses</option>
           <option value="queued">Queued</option>
           <option value="preparing">Preparing</option>
@@ -119,14 +111,14 @@
           <option value="failed">Failed</option>
           <option value="duplicate">Duplicate</option>
         </select>
-        <button class="ghost" id="refresh-btn">Refresh</button>
+        <button class="btn btn-ghost btn-sm" id="refresh-btn">Refresh</button>
         <label class="auto-refresh">
           <input type="checkbox" id="auto-refresh" checked />
           Auto-refresh (10s)
         </label>
       </div>
 
-      <table id="queue-table">
+      <table class="table" id="queue-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -144,334 +136,42 @@
         <h3 id="edit-title">Edit Item</h3>
         <input type="hidden" id="edit-id" />
         <input type="hidden" id="edit-media-type" />
-        <div class="row">
-          <div class="col">
-            <div class="field">
-              <label>Release Name</label>
-              <input id="edit-release-name" style="width: 100%;" />
-            </div>
+        <div class="grid grid-cols-2 gap-6">
+          <div class="form-group">
+            <label class="form-label">Release Name</label>
+            <input id="edit-release-name" />
           </div>
         </div>
-        <div class="row" id="metadata-fields" style="display: none;">
-          <div class="col">
-            <div class="field">
-              <label>IMDB ID (tt1234567)</label>
-              <input id="edit-imdb" style="width: 100%;" placeholder="tt1234567" />
-            </div>
+        <div class="grid grid-cols-2 gap-6" id="metadata-fields" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">IMDB ID (tt1234567)</label>
+            <input id="edit-imdb" placeholder="tt1234567" />
           </div>
-          <div class="col">
-            <div class="field">
-              <label>TVMaze ID</label>
-              <input id="edit-tvmazeid" style="width: 100%;" placeholder="12345" />
-            </div>
+          <div class="form-group">
+            <label class="form-label">TVMaze ID</label>
+            <input id="edit-tvmazeid" placeholder="12345" />
           </div>
         </div>
-        <div class="row">
-          <div class="col">
-            <div class="field">
-              <label>Tags (comma-separated)</label>
-              <input id="edit-tags" style="width: 100%;" placeholder="1080p, BluRay, x264" />
-            </div>
+        <div class="grid grid-cols-2 gap-6">
+          <div class="form-group">
+            <label class="form-label">Tags (comma-separated)</label>
+            <input id="edit-tags" placeholder="1080p, BluRay, x264" />
           </div>
         </div>
-        <div class="edit-actions">
-          <button class="primary" id="save-edit-btn">Save Changes</button>
-          <button class="ghost" id="cancel-edit-btn">Cancel</button>
+        <div class="flex gap-3 mt-3">
+          <button class="btn btn-primary btn-md" id="save-edit-btn">Save Changes</button>
+          <button class="btn btn-ghost btn-md" id="cancel-edit-btn">Cancel</button>
         </div>
       </div>
 
-      <div class="hint">Edit release name, category, and tags before upload. Items in progress cannot be edited.</div>
+      <div class="form-hint mt-3">Edit release name, category, and tags before upload. Items in progress cannot be edited.</div>
     </div>
-  </div>
+  </main>
 
   <script>
-    const categoryOptions = {{ category_options | tojson }};
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-    let currentFilter = 'all';
-    let autoRefreshInterval = null;
-    let queueData = [];
-
-    function csrfHeaders() {
-      return csrfToken ? { 'X-CSRFToken': csrfToken } : {};
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text || '';
-      return div.innerHTML;
-    }
-
-    function statusBadge(status) {
-      return `<span class="status ${escapeHtml(status)}">${escapeHtml(status)}</span>`;
-    }
-
-    function getActionsForStatus(status, id) {
-      const actions = [];
-      switch (status) {
-        case 'queued':
-          actions.push(`<button class="ghost sm" data-action="edit" data-id="${id}" title="Edit">E</button>`);
-          actions.push(`<button class="ghost sm" data-action="delete" data-id="${id}" title="Delete">X</button>`);
-          break;
-        case 'preparing':
-        case 'uploading':
-          actions.push(`<button class="ghost sm" disabled title="In Progress">--</button>`);
-          break;
-        case 'success':
-          actions.push(`<button class="ghost sm" data-action="view" data-id="${id}" title="View">V</button>`);
-          break;
-        case 'failed':
-          actions.push(`<button class="ghost sm" data-action="retry" data-id="${id}" title="Retry">R</button>`);
-          actions.push(`<button class="ghost sm" data-action="edit" data-id="${id}" title="Edit">E</button>`);
-          actions.push(`<button class="ghost sm" data-action="delete" data-id="${id}" title="Delete">X</button>`);
-          break;
-        case 'duplicate':
-          actions.push(`<button class="ghost sm" data-action="view" data-id="${id}" title="View">V</button>`);
-          actions.push(`<button class="ghost sm" data-action="delete" data-id="${id}" title="Delete">X</button>`);
-          break;
-        default:
-          actions.push(`<button class="ghost sm" data-action="view" data-id="${id}" title="View">V</button>`);
-      }
-      return actions.join('');
-    }
-
-    function filterQueue(data, filter) {
-      if (filter === 'all') return data;
-      if (filter === 'uploading') {
-        return data.filter(item => item.status === 'uploading' || item.status === 'preparing');
-      }
-      return data.filter(item => item.status === filter);
-    }
-
-    function renderQueue(data) {
-      const tbody = document.getElementById('queue-body');
-      const filtered = filterQueue(data, currentFilter);
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="muted" style="text-align: center; padding: 24px;">No items in queue</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(item => `
-        <tr data-id="${item.id}">
-          <td>${escapeHtml(String(item.id))}</td>
-          <td>${escapeHtml(item.media_type)}</td>
-          <td class="release-name" title="${escapeHtml(item.release_name)}">${escapeHtml(item.release_name)}</td>
-          <td>${escapeHtml(String(item.category))}</td>
-          <td>${statusBadge(item.status)}</td>
-          <td class="actions-cell">${getActionsForStatus(item.status, item.id)}</td>
-        </tr>
-      `).join('');
-
-      attachActionListeners();
-    }
-
-    function attachActionListeners() {
-      document.querySelectorAll('[data-action]').forEach(btn => {
-        btn.onclick = (e) => {
-          const action = e.target.dataset.action;
-          const id = parseInt(e.target.dataset.id, 10);
-          handleAction(action, id);
-        };
-      });
-    }
-
-    function handleAction(action, id) {
-      const item = queueData.find(i => i.id === id);
-      if (!item) return;
-
-      switch (action) {
-        case 'edit':
-          showEditPanel(item);
-          break;
-        case 'delete':
-          deleteItem(id);
-          break;
-        case 'retry':
-          retryItem(id);
-          break;
-        case 'view':
-          showViewPanel(item);
-          break;
-      }
-    }
-
-    function showEditPanel(item) {
-      const panel = document.getElementById('edit-panel');
-      document.getElementById('edit-title').textContent = `Edit Item #${item.id}`;
-      document.getElementById('edit-id').value = item.id;
-      document.getElementById('edit-media-type').value = item.media_type;
-      document.getElementById('edit-release-name').value = item.release_name;
-      document.getElementById('edit-tags').value = item.tags || '';
-      
-      const imdbInput = document.getElementById('edit-imdb');
-      const tvmazeidInput = document.getElementById('edit-tvmazeid');
-      imdbInput.value = item.imdb || '';
-      tvmazeidInput.value = item.tvmazeid || '';
-
-      const metadataFields = document.getElementById('metadata-fields');
-      if (item.media_type === 'movies' || item.media_type === 'tv') {
-        metadataFields.style.display = 'flex';
-      } else {
-        metadataFields.style.display = 'none';
-      }
-
-      const categorySelect = document.getElementById('edit-category');
-      const options = categoryOptions[item.media_type] || [];
-      categorySelect.innerHTML = options.map(opt =>
-        `<option value="${opt.id}" ${opt.id === item.category ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`
-      ).join('');
-
-      panel.classList.add('visible');
-    }
-
-    function showViewPanel(item) {
-      const panel = document.getElementById('edit-panel');
-      document.getElementById('edit-title').textContent = `View Item #${item.id}`;
-      document.getElementById('edit-id').value = item.id;
-      document.getElementById('edit-media-type').value = item.media_type;
-      document.getElementById('edit-release-name').value = item.release_name;
-      document.getElementById('edit-release-name').disabled = true;
-      document.getElementById('edit-tags').value = item.tags || '';
-      document.getElementById('edit-tags').disabled = true;
-
-      const categorySelect = document.getElementById('edit-category');
-      const options = categoryOptions[item.media_type] || [];
-      categorySelect.innerHTML = options.map(opt =>
-        `<option value="${opt.id}" ${opt.id === item.category ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`
-      ).join('');
-      categorySelect.disabled = true;
-
-      document.getElementById('save-edit-btn').style.display = 'none';
-      panel.classList.add('visible');
-    }
-
-    function hideEditPanel() {
-      const panel = document.getElementById('edit-panel');
-      panel.classList.remove('visible');
-      document.getElementById('edit-release-name').disabled = false;
-      document.getElementById('edit-tags').disabled = false;
-      document.getElementById('edit-category').disabled = false;
-      document.getElementById('save-edit-btn').style.display = '';
-    }
-
-    async function saveEdit() {
-      const id = parseInt(document.getElementById('edit-id').value, 10);
-      const releaseName = document.getElementById('edit-release-name').value;
-      const category = document.getElementById('edit-category').value;
-      const tags = document.getElementById('edit-tags').value;
-      const imdb = document.getElementById('edit-imdb').value;
-      const tvmazeid = document.getElementById('edit-tvmazeid').value;
-
-      const res = await fetch('/api/queue/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ id, release_name: releaseName, category, tags, imdb, tvmazeid })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        hideEditPanel();
-        await loadQueue();
-      } else {
-        alert(data.error || 'Failed to update item');
-      }
-    }
-
-    async function deleteItem(id) {
-      if (!confirm('Delete this item from the queue?')) return;
-
-      const res = await fetch('/api/queue/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ id })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        await loadQueue();
-      } else {
-        alert(data.error || 'Failed to delete item');
-      }
-    }
-
-    async function retryItem(id) {
-      const res = await fetch('/api/queue/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ id, status: 'queued', message: '' })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        await loadQueue();
-      } else {
-        alert(data.error || 'Failed to retry item');
-      }
-    }
-
-    async function loadQueue() {
-      try {
-        const res = await fetch('/api/queue');
-        queueData = await res.json();
-        renderQueue(queueData);
-      } catch (err) {
-        console.error('Failed to load queue:', err);
-      }
-    }
-
-    function setFilter(filter) {
-      currentFilter = filter;
-
-      document.querySelectorAll('.filter-tabs button').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.filter === filter);
-      });
-
-      document.getElementById('status-filter').value = filter;
-      renderQueue(queueData);
-    }
-
-    function setupAutoRefresh() {
-      const checkbox = document.getElementById('auto-refresh');
-
-      if (checkbox.checked) {
-        autoRefreshInterval = setInterval(loadQueue, 10000);
-      }
-
-      checkbox.onchange = () => {
-        if (checkbox.checked) {
-          autoRefreshInterval = setInterval(loadQueue, 10000);
-        } else {
-          clearInterval(autoRefreshInterval);
-          autoRefreshInterval = null;
-        }
-      };
-    }
-
-    // Event listeners
-    document.querySelectorAll('.filter-tabs button').forEach(btn => {
-      btn.onclick = () => setFilter(btn.dataset.filter);
-    });
-
-    document.getElementById('status-filter').onchange = (e) => {
-      setFilter(e.target.value);
-    };
-
-    document.getElementById('refresh-btn').onclick = loadQueue;
-    document.getElementById('save-edit-btn').onclick = saveEdit;
-    document.getElementById('cancel-edit-btn').onclick = hideEditPanel;
-
-    // Initialize
-    loadQueue();
-    setupAutoRefresh();
-
-    // Theme toggle
-    document.getElementById('theme-toggle').onclick = () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-    };
+    window.categoryOptions = {{ category_options | tojson }};
+    window.csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
   </script>
+  <script src="{{ url_for('static', filename='js/queue.js') }}"></script>
 </body>
 </html>

@@ -5,137 +5,114 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>{{ app_name }} Settings</title>
-  <style>
-    :root {
-      --bg: #0f0f12; --bg-panel: #15151b; --bg-input: #1e1e27;
-      --border: #242430; --border-light: #2d2d3a;
-      --text: #e9e9ef; --text-muted: #9aa0a6; --text-heading: #c2c2d1;
-      --accent: #8be9fd;
-    }
-    [data-theme="light"] {
-      --bg: #f5f5f7; --bg-panel: #ffffff; --bg-input: #f0f0f2;
-      --border: #d0d0d8; --border-light: #c5c5cd;
-      --text: #1a1a1a; --text-muted: #666670; --text-heading: #333340;
-      --accent: #0077cc;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Iosevka", "IBM Plex Sans", "Segoe UI", sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
-    }
-    a { color: var(--accent); text-decoration: none; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    h1 { font-size: 1.6rem; margin-bottom: 6px; }
-    .sub { color: var(--text-muted); margin-bottom: 18px; }
-    .panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--text-heading); }
-    .row { display: flex; gap: 12px; flex-wrap: wrap; }
-    .col { flex: 1; min-width: 260px; }
-    .field { margin-bottom: 12px; }
-    label { display: block; margin-bottom: 6px; color: var(--text-muted); }
-    input, textarea, select, button {
-      background: var(--bg-input); color: var(--text); border: 1px solid var(--border-light); border-radius: 6px;
-      padding: 8px 10px; font-size: 0.95rem; width: 100%;
-    }
-    textarea { min-height: 90px; }
-    button { cursor: pointer; font-weight: 600; width: auto; }
-    button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
-    .muted { color: var(--text-muted); font-size: 0.85rem; }
-    .actions { display: flex; gap: 10px; align-items: center; }
-    .theme-toggle { cursor: pointer; background: none; border: none; padding: 4px 8px; width: auto; display: flex; align-items: center; }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   <script>
     (function() {
       const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
+  <style>
+    /* Page-specific: checkbox label inline layout */
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      cursor: pointer;
+    }
+
+    .checkbox-field input[type="checkbox"] {
+      width: auto;
+      height: auto;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1>{{ app_name }} Settings</h1>
-        <div class="sub">v{{ app_version }} — Everything is editable here</div>
-      </div>
-      <div class="actions">
-        <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-        <a href="/">Back to app</a>
-      </div>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <a href="/" class="header-logo">{{ app_name }}</a>
+      <span class="header-version">v{{ app_version }}</span>
+    </div>
+    <nav class="header-nav">
+      <a href="/" class="nav-item">Dashboard</a>
+      <a href="/browse" class="nav-item">Browse</a>
+      <a href="/queue" class="nav-item">Queue</a>
+      <a href="/history" class="nav-item">History</a>
+      <a href="/settings" class="nav-item is-active">Settings</a>
+    </nav>
+    <button class="btn btn-ghost btn-sm" id="theme-toggle" title="Toggle light/dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <div class="header-status">
+      <span class="status-dot status-dot-success" id="worker-status"></span>
+      <span>Worker</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container page">
+    <div class="page-header">
+      <h1 class="page-title">Settings</h1>
     </div>
 
-    <div class="panel">
-      <h2>General</h2>
-      <div class="row">
-        <div class="col">
-          <div class="field">
-            <label>Browse Base</label>
-            <input id="browse_base" value="{{ settings['browse_base'] }}" />
-            <div class="muted">Default base path for your clean library.</div>
-          </div>
+    <!-- General -->
+    <div class="card mb-6">
+      <h2 class="section-title">General</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="form-group">
+          <label class="form-label">Browse Base</label>
+          <input id="browse_base" value="{{ settings['browse_base'] }}" />
+          <div class="form-hint">Default base path for your clean library.</div>
         </div>
-        <div class="col">
-          <div class="field">
-            <label>Output Dir</label>
-            <input id="output_dir" value="{{ settings['output_dir'] }}" />
-            <div class="muted">Where .torrent, .nfo, and .xml sidecars are written.</div>
-          </div>
+        <div class="form-group">
+          <label class="form-label">Output Dir</label>
+          <input id="output_dir" value="{{ settings['output_dir'] }}" />
+          <div class="form-hint">Where .torrent, .nfo, and .xml sidecars are written.</div>
         </div>
       </div>
-      <div class="row">
-        <div class="col">
-          <div class="field">
-            <label>Release Group</label>
-            <input id="release_group" value="{{ settings.get('release_group', 'Torrup') }}" />
-            <div class="muted">Your release group name for NFO files and naming.</div>
-          </div>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="form-group">
+          <label class="form-label">Release Group</label>
+          <input id="release_group" value="{{ settings.get('release_group', 'Torrup') }}" />
+          <div class="form-hint">Your release group name for NFO files and naming.</div>
         </div>
-        <div class="col">
-          <div class="field">
-            <label>Exclude Folders (comma-separated)</label>
-            <input id="exclude_dirs" value="{{ settings['exclude_dirs'] }}" />
-            <div class="muted">Folders containing these names are hidden from browse.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Automation (Beta)</h2>
-      <div class="row">
-        <div class="col">
-          <div class="field">
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" id="test_mode" style="width: auto;" {% if settings.get('test_mode', '0') == '1' %}checked{% endif %} />
-              Test Mode (Dry Run)
-            </label>
-            <div class="muted">Generate NFO + torrent but skip the actual upload to TorrentLeech.</div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="field">
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" id="enable_auto_upload" style="width: auto;" {% if settings.get('enable_auto_upload', '0') == '1' %}checked{% endif %} />
-              Enable Auto-Scan + Upload
-            </label>
-            <div class="muted">Automatically scan roots and queue items missing from TorrentLeech.</div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="field">
-            <label>Scan Interval (minutes)</label>
-            <input type="number" id="auto_scan_interval" value="{{ settings.get('auto_scan_interval', '60') }}" />
-          </div>
+        <div class="form-group">
+          <label class="form-label">Exclude Folders (comma-separated)</label>
+          <input id="exclude_dirs" value="{{ settings['exclude_dirs'] }}" />
+          <div class="form-hint">Folders containing these names are hidden from browse.</div>
         </div>
       </div>
     </div>
 
-    <div class="panel">
-      <h2>Media Roots + Defaults</h2>
-      <table id="media-roots">
+    <!-- Automation -->
+    <div class="card mb-6">
+      <h2 class="section-title">Automation (Beta)</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="form-group">
+          <label class="checkbox-field">
+            <input type="checkbox" id="test_mode" {% if settings.get('test_mode', '0') == '1' %}checked{% endif %} />
+            Test Mode (Dry Run)
+          </label>
+          <div class="form-hint">Generate NFO + torrent but skip the actual upload to TorrentLeech.</div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-field">
+            <input type="checkbox" id="enable_auto_upload" {% if settings.get('enable_auto_upload', '0') == '1' %}checked{% endif %} />
+            Enable Auto-Scan + Upload
+          </label>
+          <div class="form-hint">Automatically scan roots and queue items missing from TorrentLeech.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Scan Interval (minutes)</label>
+          <input type="number" id="auto_scan_interval" value="{{ settings.get('auto_scan_interval', '60') }}" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Roots -->
+    <div class="card mb-6">
+      <h2 class="section-title">Media Roots + Defaults</h2>
+      <table class="table" id="media-roots">
         <thead>
           <tr>
             <th>Media Type</th>
@@ -149,8 +126,8 @@
           {% for r in media_roots %}
           <tr>
             <td>{{ r.media_type }}</td>
-            <td><input type="checkbox" data-field="enabled" {% if r.enabled %}checked{% endif %} /></td>
-            <td><input type="checkbox" data-field="auto_scan" {% if r.auto_scan %}checked{% endif %} /></td>
+            <td><input type="checkbox" data-field="enabled" {% if r.enabled %}checked{% endif %} style="width: auto; height: auto;" /></td>
+            <td><input type="checkbox" data-field="auto_scan" {% if r.auto_scan %}checked{% endif %} style="width: auto; height: auto;" /></td>
             <td><input data-field="path" value="{{ r.path }}" /></td>
             <td>
               <select data-field="default_category">
@@ -163,111 +140,114 @@
           {% endfor %}
         </tbody>
       </table>
-      <div class="muted" style="margin-top: 8px;">Auto-scan only processes items in roots that are enabled and have "Auto Scan" checked.</div>
+      <div class="form-hint mt-2">Auto-scan only processes items in roots that are enabled and have "Auto Scan" checked.</div>
     </div>
 
-    <div class="panel">
-      <h2>Metadata Extraction</h2>
-      <div class="row">
-        <div class="col">
-          <div class="field">
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" id="extract_metadata" style="width: auto;" {% if settings.get('extract_metadata', '1') == '1' %}checked{% endif %} />
-              Extract Metadata (exiftool)
-            </label>
-            <div class="muted">Extract title, artist, album, year from files.</div>
-          </div>
+    <!-- Metadata Extraction -->
+    <div class="card mb-6">
+      <h2 class="section-title">Metadata Extraction</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="form-group">
+          <label class="checkbox-field">
+            <input type="checkbox" id="extract_metadata" {% if settings.get('extract_metadata', '1') == '1' %}checked{% endif %} />
+            Extract Metadata (exiftool)
+          </label>
+          <div class="form-hint">Extract title, artist, album, year from files.</div>
         </div>
-        <div class="col">
-          <div class="field">
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" id="extract_thumbnails" style="width: auto;" {% if settings.get('extract_thumbnails', '1') == '1' %}checked{% endif %} />
-              Extract Thumbnails (ffmpeg)
-            </label>
-            <div class="muted">Extract video thumbnails and album artwork.</div>
-          </div>
+        <div class="form-group">
+          <label class="checkbox-field">
+            <input type="checkbox" id="extract_thumbnails" {% if settings.get('extract_thumbnails', '1') == '1' %}checked{% endif %} />
+            Extract Thumbnails (ffmpeg)
+          </label>
+          <div class="form-hint">Extract video thumbnails and album artwork.</div>
         </div>
       </div>
     </div>
 
-    <div class="panel">
-      <h2>qBitTorrent Integration</h2>
-      <div class="row">
-        <div class="col">
-          <div class="field">
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" id="qbt_enabled" style="width: auto;" {% if settings.get('qbt_enabled', '0') == '1' %}checked{% endif %} />
-              Enable qBitTorrent
-            </label>
-            <div class="muted">Allow Torrup to communicate with qBitTorrent.</div>
-          </div>
+    <!-- qBitTorrent Integration -->
+    <div class="card mb-6">
+      <h2 class="section-title">qBitTorrent Integration</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="form-group">
+          <label class="checkbox-field">
+            <input type="checkbox" id="qbt_enabled" {% if settings.get('qbt_enabled', '0') == '1' %}checked{% endif %} />
+            Enable qBitTorrent
+          </label>
+          <div class="form-hint">Allow Torrup to communicate with qBitTorrent.</div>
         </div>
-        <div class="col">
-          <div class="field">
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" id="qbt_auto_add" style="width: auto;" {% if settings.get('qbt_auto_add', '0') == '1' %}checked{% endif %} />
-              Auto-Add to qBT
-            </label>
-            <div class="muted">Automatically add torrent to qBitTorrent after successful upload.</div>
-          </div>
+        <div class="form-group">
+          <label class="checkbox-field">
+            <input type="checkbox" id="qbt_auto_add" {% if settings.get('qbt_auto_add', '0') == '1' %}checked{% endif %} />
+            Auto-Add to qBT
+          </label>
+          <div class="form-hint">Automatically add torrent to qBitTorrent after successful upload.</div>
         </div>
-        <div class="col">
-          <div class="field">
-            <label>qBT Tag</label>
-            <input id="qbt_tag" value="{{ settings.get('qbt_tag', 'Torrup') }}" />
-          </div>
+        <div class="form-group">
+          <label class="form-label">qBT Tag</label>
+          <input id="qbt_tag" value="{{ settings.get('qbt_tag', 'Torrup') }}" />
         </div>
       </div>
-      <div class="row">
-        <div class="col">
-          <div class="field">
-            <label>qBT URL</label>
-            <input id="qbt_url" value="{{ settings.get('qbt_url', 'http://localhost:8080') }}" />
-          </div>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="form-group">
+          <label class="checkbox-field">
+            <input type="checkbox" id="qbt_auto_source" {% if settings.get('qbt_auto_source', '0') == '1' %}checked{% endif %} />
+            Auto-Source from qBT
+          </label>
+          <div class="form-hint">Monitor qBitTorrent for completed downloads and add to queue.</div>
         </div>
-        <div class="col">
-          <div class="field">
-            <label>Username</label>
-            <input id="qbt_user" value="{{ settings.get('qbt_user', 'admin') }}" />
-          </div>
+        <div class="form-group">
+          <label class="form-label">Source Categories</label>
+          <input id="qbt_source_categories" value="{{ settings.get('qbt_source_categories', 'music,movies,tv') }}" />
+          <div class="form-hint">Comma-separated categories to monitor (e.g. music,movies,tv).</div>
         </div>
-        <div class="col">
-          <div class="field">
-            <label>Password</label>
-            <input type="password" id="qbt_pass" value="{{ settings.get('qbt_pass', 'adminadmin') }}" />
-          </div>
+        <div class="form-group">
+          <label class="form-label">Category Map</label>
+          <input id="qbt_category_map" value="{{ settings.get('qbt_category_map', '') }}" placeholder="movies=Movies-HD,music=Music" />
+          <div class="form-hint">Optional map: media_type=qBTCategory (CSV or JSON).</div>
         </div>
       </div>
-      <div class="row">
-        <div class="col">
-          <button id="test-qbt" style="width: auto;">Test Connection</button>
-          <span id="qbt-test-status" class="muted" style="margin-left: 10px;"></span>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="form-group">
+          <label class="form-label">qBT URL</label>
+          <input id="qbt_url" value="{{ settings.get('qbt_url', 'http://localhost:8080') }}" />
         </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input id="qbt_user" value="{{ settings.get('qbt_user', 'admin') }}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="qbt_pass" value="{{ settings.get('qbt_pass', 'adminadmin') }}" />
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="btn btn-secondary btn-sm" id="test-qbt">Test Connection</button>
+        <span class="text-muted text-sm" id="qbt-test-status"></span>
       </div>
     </div>
 
-    <div class="panel">
-      <h2>Naming Templates</h2>
-      <div class="row">
+    <!-- Naming Templates -->
+    <div class="card mb-6">
+      <h2 class="section-title">Naming Templates</h2>
+      <div class="grid grid-cols-2 gap-6">
         {% for key, tpl in templates.items() %}
-        <div class="col">
-          <div class="field">
-            <label>{{ key }}</label>
-            <input data-template="{{ key }}" value="{{ tpl }}" />
-          </div>
+        <div class="form-group">
+          <label class="form-label">{{ key }}</label>
+          <input data-template="{{ key }}" value="{{ tpl }}" />
         </div>
         {% endfor %}
       </div>
-      <div class="muted">Templates are guidance only; you can edit per item in the queue.</div>
+      <div class="form-hint">Templates are guidance only; you can edit per item in the queue.</div>
     </div>
 
-    <div class="panel">
-      <div class="actions">
-        <button class="primary" id="save">Save Settings</button>
-        <span class="muted" id="status"></span>
+    <!-- Save -->
+    <div class="card mb-6">
+      <div class="flex items-center gap-4">
+        <button class="btn btn-primary btn-md" id="save">Save Settings</button>
+        <span class="text-muted text-sm" id="status"></span>
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -293,6 +273,9 @@
         qbt_url: document.getElementById('qbt_url').value,
         qbt_user: document.getElementById('qbt_user').value,
         qbt_pass: document.getElementById('qbt_pass').value,
+        qbt_auto_source: document.getElementById('qbt_auto_source').checked ? '1' : '0',
+        qbt_source_categories: document.getElementById('qbt_source_categories').value,
+        qbt_category_map: document.getElementById('qbt_category_map').value,
         media_roots: [],
         templates: {},
       };
