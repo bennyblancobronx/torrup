@@ -4,7 +4,7 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 
 ## Version
 
-0.1.9
+0.1.10
 
 ## Features
 
@@ -17,11 +17,14 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 - Metadata extraction via exiftool (optional)
 - Thumbnail extraction via ffmpeg (optional)
 - Auto-scan worker for automatic library scanning
+- Manual scan button on dashboard
 - Activity tracking and enforcement (upload health monitoring)
+- Auto-exclude OS junk files (.DS_Store, Thumbs.db) from browsing and scanning
+- Self-cleaning output dir (staging files removed after successful upload)
 - CLI with queue, upload, and qBT commands (browse, scan, queue, prepare, upload, settings, activity, qbt)
 - Health check endpoint (/health)
 - Configurable logging
-- qBitTorrent integration (auto-add after upload, optional auto-source monitor)
+- qBitTorrent integration (auto-seed after upload)
 
 ## Security
 
@@ -33,8 +36,7 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 
 ## Tests
 
-- 313 passing tests
-- 100% code coverage
+- 317 passing tests
 
 ## Prerequisites
 
@@ -64,32 +66,20 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ## qBitTorrent Integration
 
-qBT is optional but production-ready when configured. You can enable it from the Settings UI or CLI.
+qBT is optional. When enabled, torrup downloads TL's official .torrent after upload and sends it to qBT for seeding automatically.
 
-**Required settings:**
-- `qbt_enabled=1`
-- `qbt_url`
-- `qbt_user`
-- `qbt_pass`
+**Settings:**
+- `qbt_enabled` - Enable auto-seeding (0/1)
+- `qbt_url` - WebUI URL (default: http://localhost:8080)
+- `qbt_user` - WebUI username
+- `qbt_pass` - WebUI password
 
-**Common settings:**
-- `qbt_auto_add=1` (auto-add after upload)
-- `qbt_tag` (default `torrup`)
-
-**Auto-source (optional):**
-- `qbt_auto_source=1`
-- `qbt_source_categories=music,movies,tv`
-- `qbt_category_map=movies=Movies-HD,music=Music` (optional mapping)
-
-**CLI examples:**
+Configure via Settings UI or CLI:
 ```bash
 torrup settings set qbt_enabled 1
 torrup settings set qbt_url http://localhost:8080
 torrup settings set qbt_user admin
-torrup settings set qbt_pass adminadmin
-torrup settings set qbt_auto_add 1
-torrup settings set qbt_auto_source 1
-torrup settings set qbt_source_categories music,movies,tv
+torrup settings set qbt_pass yourpassword
 ```
 
 ## Run locally
@@ -107,30 +97,31 @@ Open: http://localhost:5001
 
 ## Docker
 
-### Using GitHub Container Registry (Recommended)
+### Using Docker Compose (Recommended)
 
-You can pull and run the official image:
 ```bash
-docker run -d --name torrup \
-  -p 5001:5001 \
-  -e TL_ANNOUNCE_KEY=your_passkey \
-  -e SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") \
-  -v /path/to/data:/app/data \
-  -v /path/to/output:/app/output \
-  -v /your/media:/volume/media:ro \
-  ghcr.io/your-username/torrup:latest
+# Create .env with your keys
+echo "TL_ANNOUNCE_KEY=your_passkey" >> .env
+echo "SECRET_KEY=$(python -c 'import secrets; print(secrets.token_hex(32))')" >> .env
+echo "MEDIA_PATH=/your/media/library" >> .env
+
+# Start
+docker compose up -d
+
+# Update to latest
+docker compose pull && docker compose up -d
 ```
+
+The compose file pulls from `ghcr.io/bennyblancobronx/torrup:latest`. Output dir uses tmpfs (self-cleaning cache). Only the database and media library are persistent volumes.
 
 ### Building Locally
 
-```bash
-docker build -t torrup .
-docker run --rm -p 5001:5001 \
-  -e TL_ANNOUNCE_KEY=your_passkey \
-  -e SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") \
-  -v /volume/media:/volume/media:ro \
-  -v /app/output:/app/output:rw \
-  torrup
+To build from source instead of pulling the image, edit docker-compose.yml:
+```yaml
+services:
+  torrup:
+    # image: ghcr.io/bennyblancobronx/torrup:latest
+    build: .
 ```
 
 ## Directory Structure

@@ -75,10 +75,10 @@ Thumbnail extraction (ffmpeg):
 - `_extract_video_thumbnail(video_path, out_path)` - Extract frame at 10% duration
 - `_extract_album_art(audio_path, out_path)` - Extract embedded album artwork
 
-### Routes (src/routes.py + src/routes_changelog.py + src/routes_queue.py + src/routes_activity.py)
+### Routes (src/routes.py + src/routes_changelog.py + src/routes_queue.py + src/routes_activity.py + src/routes_scan.py)
 
 Page routes (src/routes.py + src/routes_changelog.py):
-- `GET /` - Main UI
+- `GET /` - Dashboard (system status, scan button, queue, activity chart)
 - `GET /settings` - Settings UI
 - `GET /browse` - Browse media library page
 - `GET /queue` - Upload queue page
@@ -126,7 +126,7 @@ Output dir is a cache -- staging files are removed after successful upload. Fail
 
 Background thread that automatically discovers missing uploads:
 1. Periodically scans enabled media roots (interval set by `auto_scan_interval`)
-2. Skips directories matching `exclude_dirs` setting
+2. Skips directories matching `exclude_dirs` setting and OS junk files (.DS_Store, Thumbs.db, @eaDir, .thumbs -- always excluded)
 3. For music: walks two levels deep (artist/album). For other types: scans immediate children.
 4. Checks if content already exists on the tracker (items found are recorded as `duplicate` to avoid re-scanning)
 5. Queues missing items automatically with certainty scoring and approval gating
@@ -148,20 +148,23 @@ Helper for qBitTorrent API communication:
 ## Upload Flow
 
 ```
-1. User browses media library
-2. User selects items and adds to queue
-3. Worker picks up queued item
+1. User browses media library (or auto-scan/manual scan finds items)
+2. Items added to queue (manually or by scan)
+3. Worker picks up queued item (approval_status = 'approved')
 4. Duplicate check via tracker API
    - If found: mark as "duplicate", skip
-5. Generate NFO (mediainfo)
-6. Create .torrent (mktorrent) -- temp file for upload only
-7. Write XML metadata
-8. Upload to tracker API
-   - Success: mark as "success" with torrent ID
-   - Failure: mark as "failed" with error
-9. If qBT enabled: download TL's official .torrent (correct hash), send to qBT, delete temp
-10. Fallback: if TL download fails, seed with local .torrent copy
+5. Generate NFO (mediainfo) -> output dir (staging cache)
+6. Create .torrent (mktorrent) -> output dir
+7. Write XML metadata -> output dir
+8. Upload .torrent + .nfo to tracker API
+   - Failure: mark as "failed", keep staging files for debugging
+9. If qBT enabled: download TL's official .torrent (correct hash), send to qBT
+   - Fallback: if TL download fails, seed with local .torrent copy
+10. Clean up staging files from output dir (.nfo, .xml, .thumb, .torrent)
+11. Mark as "success" with torrent ID
 ```
+
+Output dir is a self-cleaning cache. Staging files are removed after successful upload. Failed items retain their files for debugging. In Docker, output dir uses tmpfs (ephemeral, clears on restart).
 
 ## Configuration
 
@@ -319,104 +322,18 @@ Output (stdout/stderr + exit codes)
 
 Full reference: [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)
 
-### Settings
-
-```bash
-# Get all settings
-torrup settings get
-
-# Get specific setting
-torrup settings get <key>
-
-# Set a setting
-torrup settings set <key> <value>
-```
-
-### Browse
-
-```bash
-# Browse media library
-torrup browse <media_type> [path]
-
-# Examples
-torrup browse music
-torrup browse movies /volume/media/movies/2024
-```
-
-### Queue Management
-
-```bash
-# Add to queue
-torrup queue add <media_type> <path> [--category N] [--tags csv] [--release-name name]
-
-# List queue
-torrup queue list [--status STATUS] [--media-type TYPE] [--limit N] [--offset N]
-
-# Update queue item
-torrup queue update <id> [--release-name name] [--category N] [--tags csv] [--status status] [--approval approved|pending_approval|rejected]
-
-# Delete from queue
-torrup queue delete <id>
-
-# Run worker (process queue)
-torrup queue run [--once] [--interval N]
-```
-
-### Scan
-
-```bash
-# Scan a library for content missing from the tracker
-torrup scan <media_type> <path>
-
-# Options
-torrup scan music /volume/media/music --recursive
-torrup scan music /volume/media/music --dry-run
-```
-
-Currently supports music scanning (walks artist/album directories).
-
-### Prepare and Upload
-
-```bash
-# Prepare only (NFO + torrent + XML)
-torrup prepare <id>
-
-# Upload only (assumes prepared)
-torrup upload <id>
-
-# Check for duplicates
-torrup check-dup <release_name>
-```
-
-### Upload History
-
-```bash
-# List upload history
-torrup uploads list [--limit N] [--status STATUS] [--media-type TYPE] [--since YYYY-MM-DD]
-
-# Show upload details
-torrup uploads show <id>
-```
-
-### Activity
-
-```bash
-# Show TL activity health for the current month
-torrup activity
-torrup activity --json
-```
-
-Displays: uploads this month, queued count, projected vs minimum, needed uploads, days remaining, enforcement status, and 7-day upload pace.
-
-### qBitTorrent
-
-```bash
-# Test qBitTorrent connection
-torrup qbt test
-
-# Add a torrent to qBitTorrent
-torrup qbt add --torrent /path/to/file.torrent --save-path /path/to/content [--category CAT]
-```
+| Command | Description |
+|---------|-------------|
+| `torrup settings get/set` | Configuration management |
+| `torrup browse <type> [path]` | Browse media library |
+| `torrup queue add/list/update/delete/run` | Queue management |
+| `torrup scan <type> <path>` | Scan library for missing content |
+| `torrup prepare <id>` | Generate NFO + torrent |
+| `torrup upload <id>` | Upload to tracker |
+| `torrup check-dup <name>` | Duplicate check |
+| `torrup uploads list/show` | Upload history |
+| `torrup activity` | Monthly activity health |
+| `torrup qbt test/add` | qBitTorrent integration |
 
 ## Running
 
@@ -444,10 +361,15 @@ services:
       - "5001:5001"
     environment:
       - TL_ANNOUNCE_KEY=${TL_ANNOUNCE_KEY}
+      - SECRET_KEY=${SECRET_KEY}
     volumes:
-      - /path/to/media:/volume/media:ro
-      - ./output:/app/output
-      - ./torrup.db:/app/torrup.db
+      - ./data:/app/data
+      - ${MEDIA_PATH:-/volume/media}:/volume/media:ro
+    tmpfs:
+      - /tmp
+      - /app/output
 ```
+
+Output dir (`/app/output`) uses tmpfs -- it is a staging cache that self-cleans after each upload. Only the database (`./data`) and media library need persistent storage.
 
 To update: `docker compose pull && docker compose up -d`

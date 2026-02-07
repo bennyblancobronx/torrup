@@ -92,7 +92,7 @@ External integrations, dependencies, and obligations.
 | `TL_ANNOUNCE_KEY` | Yes | - | Tracker passkey (e.g. TorrentLeech 32 chars) |
 | `SECRET_KEY` | Yes | - | Flask session key (app will not start without this) |
 | `TORRUP_DB_PATH` | No | ./torrup.db | SQLite database path |
-| `TORRUP_OUTPUT_DIR` | No | ./output | Output directory for torrents/NFOs |
+| `TORRUP_OUTPUT_DIR` | No | ./output | Staging cache for torrents/NFOs (auto-cleaned after upload) |
 | `TORRUP_RUN_WORKER` | No | 1 | Enable background worker (1=yes, 0=no) |
 | `QBT_URL` | No | - | qBitTorrent WebUI URL override |
 | `QBT_USER` | No | - | qBitTorrent username override |
@@ -118,14 +118,21 @@ External integrations, dependencies, and obligations.
 
 ## Docker Integration
 
+**Image:** `ghcr.io/bennyblancobronx/torrup:latest` (built on tag push via GitHub Actions)
+
 **Network:** Designed to run in `vpn-stack` with gluetun routing.
 
 **Volumes:**
 - Media library roots (read-only)
-- Output directory (read-write)
-- Database file (read-write)
+- Database directory `./data:/app/data` (read-write, persistent)
+
+**tmpfs (ephemeral):**
+- `/tmp` - temp storage
+- `/app/output` - staging cache for .torrent, .nfo, .xml, .thumb (auto-cleaned after upload)
 
 **Port:** 5001 (configurable)
+
+**Update:** `docker compose pull && docker compose up -d`
 
 ## Tracker Module
 
