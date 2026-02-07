@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11] - 2026-02-07
+
+### Changed
+- Bump version to v0.1.11 for Docker rebuild with all 0.1.10 post-tag fixes included
+- Fixed Dockerfile ARG VERSION (was stuck at 0.1.9)
+
 ## [0.1.10] - 2026-02-07
 
 ### Added

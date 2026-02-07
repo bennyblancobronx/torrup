@@ -1,6 +1,6 @@
 # torrup - Torrent Upload Tool
 
-**Version:** 0.1.10
+**Version:** 0.1.11
 
 ## What It Is
 
@@ -46,7 +46,7 @@ torrup/
 
 ## Status
 
-v0.1.10 - Feature complete:
+v0.1.11 - Feature complete:
 - Web UI for browsing and uploading (6 pages including changelog)
 - Dashboard with system status, manual scan button, queue, activity chart
 - CLI with 13 commands

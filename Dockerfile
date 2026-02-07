@@ -1,6 +1,6 @@
 FROM python:3.11.7-slim
 
-ARG VERSION=0.1.9
+ARG VERSION=0.1.11
 LABEL maintainer="project-maintainer" \
       version="${VERSION}" \
       description="torrup - Torrent Upload Tool"

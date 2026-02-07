@@ -4,7 +4,7 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 
 ## Version
 
-0.1.10
+0.1.11
 
 ## Features
 
