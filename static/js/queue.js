@@ -57,12 +57,33 @@ function filterQueue(data, filter) {
   return data.filter(item => item.status === filter);
 }
 
+function renderSummary(data) {
+  const counts = { queued: 0, failed: 0, duplicate: 0, success: 0, preparing: 0, uploading: 0 };
+  data.forEach(item => { if (counts[item.status] !== undefined) counts[item.status]++; });
+
+  const parts = [];
+  parts.push(`${data.length} total`);
+  if (counts.queued) parts.push(`${counts.queued} queued`);
+  if (counts.failed) parts.push(`${counts.failed} failed`);
+  if (counts.duplicate) parts.push(`${counts.duplicate} duplicate`);
+  if (counts.success) parts.push(`${counts.success} completed`);
+  if (counts.uploading || counts.preparing) parts.push(`${counts.uploading + counts.preparing} in progress`);
+
+  document.getElementById('queue-summary').textContent = parts.join(' | ');
+
+  // Show/hide bulk buttons based on what exists
+  document.getElementById('retry-all-btn').style.display = counts.failed > 0 ? '' : 'none';
+  document.getElementById('clear-dupes-btn').style.display = counts.duplicate > 0 ? '' : 'none';
+  document.getElementById('clear-completed-btn').style.display = counts.success > 0 ? '' : 'none';
+}
+
 function renderQueue(data) {
+  renderSummary(data);
   const tbody = document.getElementById('queue-body');
   const filtered = filterQueue(data, currentFilter);
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-muted" style="text-align: center; padding: var(--space-6);">No items in queue</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-muted" style="text-align: center; padding: var(--space-6);">No items in queue</td></tr>`;
     return;
   }
 
@@ -73,6 +94,7 @@ function renderQueue(data) {
       <td class="release-name" title="${escapeHtml(item.release_name)}">${escapeHtml(item.release_name)}</td>
       <td>${escapeHtml(String(item.category))}</td>
       <td>${statusBadge(item.status)}</td>
+      <td class="text-sm text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(item.message || '')}">${escapeHtml(item.message || '')}</td>
       <td class="table-actions">${getActionsForStatus(item.status, item.id)}</td>
     </tr>
   `).join('');
@@ -224,6 +246,51 @@ async function retryItem(id) {
   }
 }
 
+async function retryAllFailed() {
+  if (!confirm('Reset all failed items to queued?')) return;
+  const res = await fetch('/api/queue/retry-all', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...csrfHeaders() }
+  });
+  const data = await res.json();
+  if (data.success) await loadQueue();
+  else alert(data.error || 'Failed');
+}
+
+async function clearDuplicates() {
+  if (!confirm('Remove all duplicate items?')) return;
+  const res = await fetch('/api/queue/clear-duplicates', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...csrfHeaders() }
+  });
+  const data = await res.json();
+  if (data.success) await loadQueue();
+  else alert(data.error || 'Failed');
+}
+
+async function clearCompleted() {
+  if (!confirm('Remove all completed items?')) return;
+  const res = await fetch('/api/queue/clear-completed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...csrfHeaders() }
+  });
+  const data = await res.json();
+  if (data.success) await loadQueue();
+  else alert(data.error || 'Failed');
+}
+
+async function clearAll() {
+  if (!confirm('Remove ALL items from the queue? This cannot be undone.')) return;
+  const res = await fetch('/api/queue/clear-all', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+    body: JSON.stringify({ confirm: true })
+  });
+  const data = await res.json();
+  if (data.success) await loadQueue();
+  else alert(data.error || 'Failed');
+}
+
 async function loadQueue() {
   try {
     const res = await fetch('/api/queue');
@@ -274,6 +341,11 @@ document.getElementById('status-filter').onchange = (e) => {
 document.getElementById('refresh-btn').onclick = loadQueue;
 document.getElementById('save-edit-btn').onclick = saveEdit;
 document.getElementById('cancel-edit-btn').onclick = hideEditPanel;
+
+document.getElementById('retry-all-btn').onclick = retryAllFailed;
+document.getElementById('clear-dupes-btn').onclick = clearDuplicates;
+document.getElementById('clear-completed-btn').onclick = clearCompleted;
+document.getElementById('clear-all-btn').onclick = clearAll;
 
 // Initialize
 loadQueue();

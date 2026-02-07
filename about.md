@@ -1,6 +1,6 @@
 # torrup - Torrent Upload Tool
 
-**Version:** 0.1.12
+**Version:** 0.1.13
 
 ## What It Is
 
@@ -46,7 +46,7 @@ torrup/
 
 ## Status
 
-v0.1.11 - Feature complete:
+v0.1.13 - Production hardening:
 - Web UI for browsing and uploading (6 pages including changelog)
 - Dashboard with system status, manual scan button, queue, activity chart
 - CLI with 13 commands
@@ -60,7 +60,7 @@ v0.1.11 - Feature complete:
 - Activity tracking and enforcement (upload health monitoring)
 - Settings management
 - Security hardening (CSRF, rate limiting, headers)
-- 317 tests passing
+- 327 tests passing
 - Docker deployment via GHCR with :latest tag
 
 ## Roadmap

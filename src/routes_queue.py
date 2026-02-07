@@ -139,6 +139,56 @@ def delete_queue() -> tuple[Any, int]:
     return jsonify({"success": True}), 200
 
 
+@bp.route("/api/queue/retry-all", methods=["POST"])
+@limiter.limit("5 per minute")
+def retry_all_failed():
+    """Reset all failed items to queued."""
+    with db() as conn:
+        result = conn.execute(
+            "UPDATE queue SET status = 'queued', message = '', updated_at = ? WHERE status = 'failed'",
+            (now_iso(),),
+        )
+        count = result.rowcount
+        conn.commit()
+    return jsonify({"success": True, "count": count}), 200
+
+
+@bp.route("/api/queue/clear-duplicates", methods=["POST"])
+@limiter.limit("5 per minute")
+def clear_duplicates():
+    """Remove all duplicate items from queue."""
+    with db() as conn:
+        result = conn.execute("DELETE FROM queue WHERE status = 'duplicate'")
+        count = result.rowcount
+        conn.commit()
+    return jsonify({"success": True, "count": count}), 200
+
+
+@bp.route("/api/queue/clear-completed", methods=["POST"])
+@limiter.limit("5 per minute")
+def clear_completed():
+    """Remove all completed items from queue."""
+    with db() as conn:
+        result = conn.execute("DELETE FROM queue WHERE status = 'success'")
+        count = result.rowcount
+        conn.commit()
+    return jsonify({"success": True, "count": count}), 200
+
+
+@bp.route("/api/queue/clear-all", methods=["POST"])
+@limiter.limit("2 per minute")
+def clear_all():
+    """Clear entire queue. Requires confirm=true."""
+    data = request.json or {}
+    if not data.get("confirm"):
+        return jsonify({"error": "Must pass confirm: true"}), 400
+    with db() as conn:
+        result = conn.execute("DELETE FROM queue")
+        count = result.rowcount
+        conn.commit()
+    return jsonify({"success": True, "count": count}), 200
+
+
 def _enqueue_items(items: list[dict[str, Any]]) -> list[int]:
     """Add items to the queue and return their IDs."""
     ids = []

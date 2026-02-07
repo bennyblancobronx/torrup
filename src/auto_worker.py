@@ -76,7 +76,7 @@ def auto_scan_worker(shutdown_event: "threading.Event | None" = None) -> None:
     logger.info("Auto-scan worker stopped")
 
 
-def _scan_root(conn, root, excludes):
+def _scan_root(conn, root, excludes, source="Auto-scan"):
     """Scan a specific root directory."""
     base_path = Path(root["path"])
     if not base_path.exists():
@@ -119,21 +119,23 @@ def _scan_root(conn, root, excludes):
 
             # Check TL (exact=False for fuzzy matching, rate-limited)
             if check_exists(release_name, exact=False):
-                logger.info(f"Auto-scan: {release_name} already on TL, skipping.")
+                logger.info(f"{source}: {release_name} already on TL, skipping.")
                 _add_to_queue_silent(
                     conn, media_type, entry, release_name,
                     category, "duplicate", "Found during auto-scan", metadata,
                 )
+                conn.commit()
                 time.sleep(1.5)
                 continue
 
             time.sleep(1.5)
 
             # Not on TL, add to queue
-            logger.info(f"Auto-scan: Found new content {release_name}, adding to queue.")
+            logger.info(f"{source}: Found new content {release_name}, adding to queue.")
             _add_to_queue(conn, media_type, entry, release_name, category, metadata)
+            conn.commit()
         except Exception as e:
-            logger.error(f"Auto-scan: Error processing {entry}: {e}")
+            logger.error(f"{source}: Error processing {entry}: {e}")
             continue
 
 

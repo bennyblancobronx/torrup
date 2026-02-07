@@ -20,22 +20,21 @@ def trigger_scan():
     """Trigger a manual scan of enabled media roots."""
     with db() as conn:
         roots = get_media_roots(conn)
-        enabled_roots = [r for r in roots if r["enabled"] and r["auto_scan"]]
+        enabled_roots = [r for r in roots if r["enabled"]]
 
     if not enabled_roots:
-        return jsonify({"error": "No enabled roots with auto-scan on"}), 400
+        return jsonify({"error": "No enabled media roots"}), 400
 
     def run_scan():
         for root in enabled_roots:
             try:
                 with db() as conn:
                     excludes = get_excludes(conn)
-                    _scan_root(conn, root, excludes)
+                    _scan_root(conn, root, excludes, source="Scan")
                     conn.execute(
                         "UPDATE media_roots SET last_scan = ? WHERE media_type = ?",
                         (now_iso(), root["media_type"])
                     )
-                    conn.commit()
             except Exception as e:
                 logger.error(f"Manual scan error for {root['media_type']}: {e}", exc_info=True)
 

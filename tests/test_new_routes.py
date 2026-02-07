@@ -288,3 +288,257 @@ class TestWorkerApprovalGate:
             ).fetchone()
             assert row is not None
             assert row["release_name"] == "Approved-Release"
+
+
+# ---------------------------------------------------------------------------
+# Queue management -- retry-all
+# ---------------------------------------------------------------------------
+
+class TestQueueRetryAll:
+    """Tests for POST /api/queue/retry-all."""
+
+    def _insert_items(self, statuses):
+        """Insert queue items with given statuses, return list of ids."""
+        import src.db as db_module
+
+        ids = []
+        with db_module.db() as conn:
+            for i, status in enumerate(statuses):
+                cur = conn.execute(
+                    """
+                    INSERT INTO queue (
+                        media_type, path, release_name, category, tags,
+                        status, message, created_at, updated_at
+                    )
+                    VALUES ('music', ?, ?, 31, '', ?, ?, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')
+                    """,
+                    (f"/fake/path/{i}", f"Release-{i}", status, f"err-{i}" if status == "failed" else ""),
+                )
+                ids.append(cur.lastrowid)
+            conn.commit()
+        return ids
+
+    def test_retry_all_resets_failed_items(self, client):
+        """Only failed items should be changed to queued."""
+        import src.db as db_module
+
+        ids = self._insert_items(["failed", "queued", "duplicate"])
+
+        res = client.post("/api/queue/retry-all")
+        assert res.status_code == 200
+
+        with db_module.db() as conn:
+            rows = {r["id"]: dict(r) for r in conn.execute("SELECT * FROM queue").fetchall()}
+
+        assert rows[ids[0]]["status"] == "queued"
+        assert rows[ids[1]]["status"] == "queued"
+        assert rows[ids[2]]["status"] == "duplicate"
+
+    def test_retry_all_returns_count(self, client):
+        """Response includes success flag and count of reset items."""
+        self._insert_items(["failed", "failed", "queued"])
+
+        res = client.post("/api/queue/retry-all")
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["success"] is True
+        assert data["count"] == 2
+
+    def test_retry_all_clears_message(self, client):
+        """Message field is cleared after retry."""
+        import src.db as db_module
+
+        ids = self._insert_items(["failed"])
+
+        # Verify message was set
+        with db_module.db() as conn:
+            row = conn.execute("SELECT message FROM queue WHERE id = ?", (ids[0],)).fetchone()
+            assert row["message"] != ""
+
+        client.post("/api/queue/retry-all")
+
+        with db_module.db() as conn:
+            row = conn.execute("SELECT message FROM queue WHERE id = ?", (ids[0],)).fetchone()
+            assert row["message"] == ""
+
+
+# ---------------------------------------------------------------------------
+# Queue management -- clear-duplicates
+# ---------------------------------------------------------------------------
+
+class TestQueueClearDuplicates:
+    """Tests for POST /api/queue/clear-duplicates."""
+
+    def _insert_items(self, statuses):
+        """Insert queue items with given statuses, return list of ids."""
+        import src.db as db_module
+
+        ids = []
+        with db_module.db() as conn:
+            for i, status in enumerate(statuses):
+                cur = conn.execute(
+                    """
+                    INSERT INTO queue (
+                        media_type, path, release_name, category, tags,
+                        status, message, created_at, updated_at
+                    )
+                    VALUES ('music', ?, ?, 31, '', ?, '', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')
+                    """,
+                    (f"/fake/path/{i}", f"Release-{i}", status),
+                )
+                ids.append(cur.lastrowid)
+            conn.commit()
+        return ids
+
+    def test_clear_duplicates_removes_only_dupes(self, client):
+        """Only duplicate items should be removed."""
+        import src.db as db_module
+
+        ids = self._insert_items(["queued", "duplicate", "failed", "duplicate", "success"])
+
+        res = client.post("/api/queue/clear-duplicates")
+        assert res.status_code == 200
+
+        with db_module.db() as conn:
+            remaining = [r["id"] for r in conn.execute("SELECT id FROM queue").fetchall()]
+
+        assert ids[0] in remaining  # queued stays
+        assert ids[1] not in remaining  # duplicate removed
+        assert ids[2] in remaining  # failed stays
+        assert ids[3] not in remaining  # duplicate removed
+        assert ids[4] in remaining  # success stays
+
+    def test_clear_duplicates_returns_count(self, client):
+        """Response includes the count of removed duplicates."""
+        self._insert_items(["duplicate", "duplicate", "queued"])
+
+        res = client.post("/api/queue/clear-duplicates")
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["success"] is True
+        assert data["count"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Queue management -- clear-completed
+# ---------------------------------------------------------------------------
+
+class TestQueueClearCompleted:
+    """Tests for POST /api/queue/clear-completed."""
+
+    def _insert_items(self, statuses):
+        """Insert queue items with given statuses, return list of ids."""
+        import src.db as db_module
+
+        ids = []
+        with db_module.db() as conn:
+            for i, status in enumerate(statuses):
+                cur = conn.execute(
+                    """
+                    INSERT INTO queue (
+                        media_type, path, release_name, category, tags,
+                        status, message, created_at, updated_at
+                    )
+                    VALUES ('music', ?, ?, 31, '', ?, '', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')
+                    """,
+                    (f"/fake/path/{i}", f"Release-{i}", status),
+                )
+                ids.append(cur.lastrowid)
+            conn.commit()
+        return ids
+
+    def test_clear_completed_removes_only_success(self, client):
+        """Only success items should be removed."""
+        import src.db as db_module
+
+        ids = self._insert_items(["success", "queued", "failed", "success", "duplicate"])
+
+        res = client.post("/api/queue/clear-completed")
+        assert res.status_code == 200
+
+        with db_module.db() as conn:
+            remaining = [r["id"] for r in conn.execute("SELECT id FROM queue").fetchall()]
+
+        assert ids[0] not in remaining  # success removed
+        assert ids[1] in remaining  # queued stays
+        assert ids[2] in remaining  # failed stays
+        assert ids[3] not in remaining  # success removed
+        assert ids[4] in remaining  # duplicate stays
+
+
+# ---------------------------------------------------------------------------
+# Queue management -- clear-all
+# ---------------------------------------------------------------------------
+
+class TestQueueClearAll:
+    """Tests for POST /api/queue/clear-all."""
+
+    def _insert_items(self, statuses):
+        """Insert queue items with given statuses, return list of ids."""
+        import src.db as db_module
+
+        ids = []
+        with db_module.db() as conn:
+            for i, status in enumerate(statuses):
+                cur = conn.execute(
+                    """
+                    INSERT INTO queue (
+                        media_type, path, release_name, category, tags,
+                        status, message, created_at, updated_at
+                    )
+                    VALUES ('music', ?, ?, 31, '', ?, '', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')
+                    """,
+                    (f"/fake/path/{i}", f"Release-{i}", status),
+                )
+                ids.append(cur.lastrowid)
+            conn.commit()
+        return ids
+
+    def test_clear_all_requires_confirm(self, client):
+        """Calling without confirm param returns 400."""
+        res = client.post("/api/queue/clear-all", json={})
+        assert res.status_code == 400
+        data = res.get_json()
+        assert "confirm" in data["error"].lower()
+
+    def test_clear_all_removes_everything(self, client):
+        """With confirm: true, all items are removed."""
+        import src.db as db_module
+
+        self._insert_items(["queued", "failed", "success", "duplicate"])
+
+        res = client.post("/api/queue/clear-all", json={"confirm": True})
+        assert res.status_code == 200
+
+        with db_module.db() as conn:
+            count = conn.execute("SELECT COUNT(*) AS cnt FROM queue").fetchone()["cnt"]
+        assert count == 0
+
+    def test_clear_all_returns_count(self, client):
+        """Response includes count of removed items."""
+        self._insert_items(["queued", "failed", "success"])
+
+        res = client.post("/api/queue/clear-all", json={"confirm": True})
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["success"] is True
+        assert data["count"] == 3
+
+
+# ---------------------------------------------------------------------------
+# _scan_root source parameter
+# ---------------------------------------------------------------------------
+
+class TestScanSourcePrefix:
+    """Tests for _scan_root source parameter."""
+
+    def test_scan_root_accepts_source_param(self):
+        """_scan_root accepts a source parameter without error."""
+        import inspect
+        from src.auto_worker import _scan_root
+
+        sig = inspect.signature(_scan_root)
+        assert "source" in sig.parameters, "_scan_root must accept a 'source' parameter"
+        # Verify it has a default value
+        param = sig.parameters["source"]
+        assert param.default != inspect.Parameter.empty, "source should have a default value"

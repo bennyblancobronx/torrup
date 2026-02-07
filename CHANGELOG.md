@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.13] - 2026-02-07
+
+### Added
+- Queue bulk actions: Retry All Failed, Clear Duplicates, Clear Completed, Clear All (4 new API endpoints)
+- Queue summary bar showing counts by status (queued, failed, duplicate, completed, in progress)
+- Queue message column showing error/status messages inline
+- Duplicate filter tab on queue page
+
+### Changed
+- Scan commits per-album instead of per-scan: items appear in UI immediately, one failure no longer rolls back the batch
+- Manual scan decoupled from auto_scan setting: scan works when root is enabled, regardless of auto-upload checkbox
+- Scan log prefixes distinguish "Scan:" (manual) from "Auto-scan:" (background worker)
+
+### Fixed
+- Scan crash on artists with numeric names (e.g. "3030"): exiftool -n flag returned artist as integer, sanitize_release_name now casts to str
+- One bad album during scan rolled back the entire transaction: per-entry error handling so other albums still get queued
+- Manual scan error log missing traceback: added exc_info=True
+
 ## [0.1.12] - 2026-02-07
 
 ### Fixed

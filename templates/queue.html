@@ -109,6 +109,7 @@
           <button class="tab" data-filter="queued">Queued</button>
           <button class="tab" data-filter="uploading">Uploading</button>
           <button class="tab" data-filter="failed">Failed</button>
+          <button class="tab" data-filter="duplicate">Duplicate</button>
         </div>
         <select id="status-filter" style="width: auto; min-width: 140px;">
           <option value="all">All Statuses</option>
@@ -126,6 +127,17 @@
         </label>
       </div>
 
+      <!-- Status summary -->
+      <div id="queue-summary" class="flex items-center gap-4 mb-4" style="font-size: var(--font-size-sm); color: var(--color-text-muted);"></div>
+
+      <!-- Bulk actions -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="btn btn-ghost btn-sm" id="retry-all-btn" style="display:none;" title="Reset all failed items to queued">Retry All Failed</button>
+        <button class="btn btn-ghost btn-sm" id="clear-dupes-btn" style="display:none;" title="Remove all duplicate entries">Clear Duplicates</button>
+        <button class="btn btn-ghost btn-sm" id="clear-completed-btn" style="display:none;" title="Remove all completed entries">Clear Completed</button>
+        <button class="btn btn-ghost btn-sm" id="clear-all-btn" title="Remove all items from queue">Clear All</button>
+      </div>
+
       <table class="table" id="queue-table">
         <thead>
           <tr>
@@ -134,6 +146,7 @@
             <th>Release Name</th>
             <th>Category</th>
             <th>Status</th>
+            <th>Message</th>
             <th>Actions</th>
           </tr>
         </thead>
