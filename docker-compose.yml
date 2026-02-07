@@ -1,6 +1,8 @@
 services:
   torrup:
-    build: .
+    image: ghcr.io/bennyblancobronx/torrup:latest
+    # To build locally instead, comment out 'image' above and uncomment:
+    # build: .
     container_name: torrup
     ports:
       - "5001:5001"
