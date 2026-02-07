@@ -17,6 +17,7 @@ from src.utils import (
     extract_thumbnail,
     generate_nfo,
     get_folder_size,
+    human_size,
     now_iso,
     sanitize_release_name,
     write_xml_metadata,
@@ -83,6 +84,14 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
         thumb_path = None
         if get_setting(conn, "extract_thumbnails") != "0":
             thumb_path = extract_thumbnail(path, out_dir, release_name, media_type)
+            if thumb_path and media_type == "music":
+                if not metadata:
+                    metadata = {}
+                try:
+                    size = thumb_path.stat().st_size
+                    metadata["album_art_file"] = {"name": thumb_path.name, "size": human_size(size)}
+                except OSError:
+                    metadata["album_art_file"] = {"name": thumb_path.name}
 
         nfo_path = generate_nfo(
             path, release_name, out_dir, media_type, release_group, metadata

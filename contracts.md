@@ -73,16 +73,16 @@ External integrations, dependencies, and obligations.
 
 ### exiftool
 
-- **Purpose:** Extract embedded metadata from media files (artist, album, title, etc.)
+- **Purpose:** Extract embedded metadata from media files (artist, album, title, IDs, lyrics flags, etc.)
 - **Install:** `brew install exiftool` (macOS) or `apt install libimage-exiftool-perl` (Linux)
 - **Usage:** Called via `extract_metadata()` in src/utils/metadata.py
 - **Required:** No - metadata extraction is optional (controlled by `extract_metadata` setting)
 
-### ffmpeg
+### ffmpeg/ffprobe
 
-- **Purpose:** Extract video thumbnails and album artwork
+- **Purpose:** Extract video thumbnails and album artwork; ffprobe augments audio stream details for music NFOs
 - **Install:** `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Linux)
-- **Usage:** Called via `extract_thumbnail()` in src/utils/core.py
+- **Usage:** Called via `extract_thumbnail()` and ffprobe helpers in `src/utils/metadata.py`
 - **Required:** No - thumbnail extraction is optional (controlled by `extract_thumbnails` setting)
 
 ## Environment Variables

@@ -10,10 +10,12 @@ import pytest
 os.environ.setdefault("TORRUP_OUTPUT_DIR", "/tmp/torrup-test-output")
 
 from src.utils import extract_metadata, extract_thumbnail
-from src.utils.metadata import (
+from src.utils.media import (
     _extract_album_art,
     _extract_video_thumbnail,
     _find_primary_file,
+)
+from src.utils.metadata import (
     _normalize_metadata,
 )
 
@@ -228,7 +230,7 @@ class TestExtractMetadata:
 class TestExtractThumbnail:
     """Tests for extract_thumbnail function."""
 
-    @patch("src.utils.metadata._extract_video_thumbnail")
+    @patch("src.utils.media._extract_video_thumbnail")
     def test_extract_thumbnail_video(self, mock_extract, tmp_path):
         """Verify video thumbnail extraction is called for movies."""
         mock_extract.return_value = tmp_path / "thumb.jpg"
@@ -243,7 +245,7 @@ class TestExtractThumbnail:
         mock_extract.assert_called_once()
         assert result == tmp_path / "thumb.jpg"
 
-    @patch("src.utils.metadata._extract_album_art")
+    @patch("src.utils.media._extract_album_art")
     def test_extract_thumbnail_music(self, mock_extract, tmp_path):
         """Verify album art extraction is called for music."""
         mock_extract.return_value = tmp_path / "thumb.jpg"

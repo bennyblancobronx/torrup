@@ -552,7 +552,7 @@ torrup prepare <id> [options]
 
 | File | Description |
 |------|-------------|
-| `<release_name>.nfo` | MediaInfo output |
+| `<release_name>.nfo` | MediaInfo output (+ music metadata, lyrics, artwork when available) |
 | `<release_name>.torrent` | Torrent file (private, v1) |
 | `<release_name>.xml` | XML metadata sidecar |
 

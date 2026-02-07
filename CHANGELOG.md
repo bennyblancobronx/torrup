@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TL torrent download API: after upload, downloads TL's official .torrent (correct info hash) for seeding
 - Auto-seed flow: upload to TL -> download TL .torrent -> send to qBT -> delete temp local .torrent
 - Fallback: if TL download fails, seeds with local .torrent copy and logs warning
+- Music NFO enhancements: audio stream details (sample rate, bit depth, channels, bitrate) via exiftool + ffprobe
+- Music NFO: local lyrics summary (.lrc/.txt sidecar files) when available
+- Music NFO: embedded/extracted album artwork summary in NFO output
+- Extended music metadata: album artist, disc/track totals, label, catalog, ISRC, composer
+- Docker release workflow: GitHub Actions builds and pushes to GHCR on tag push
 
 ### Changed
 - Simplified qBT settings from 10 to 4: qbt_enabled, qbt_url, qbt_user, qbt_pass
@@ -23,9 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed CLI command: torrup qbt monitor
 - Removed category mapping functions (parse_qbt_category_map, map_media_type_to_qbt_category, map_qbt_category_to_media_type)
 - Settings UI: qBT section now just enabled toggle + URL/user/pass + test button
+- Split src/utils/metadata.py into metadata.py (exiftool/normalization) + media.py (thumbnails/ffprobe/lyrics) for maintainability
 
 ### Fixed
 - is_excluded() false positive on Linux: was checking all path parts including system /tmp, now checks entry name only
+- Docker release workflow: fixed steps.meta reference (was id.meta, causing build failure)
 
 ### Docs
 - Updated techguide.md, contracts.md, CLI_REFERENCE.md, GUI docs to reflect simplified qBT integration

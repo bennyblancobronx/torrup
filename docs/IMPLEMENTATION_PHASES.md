@@ -327,28 +327,30 @@ Extracts embedded metadata from files:
 - Music: artist, album, track, year, genre
 - Books: title, author, publisher, year, ISBN
 
-Functions in `src/utils.py`:
+Functions in `src/utils/metadata.py`:
 - `extract_metadata(path, media_type)` - Returns normalized metadata dict
 - `_find_primary_file(path, media_type)` - Finds best file to extract from
 - `_normalize_metadata(raw, media_type)` - Standardizes exiftool output
 
-### 6.2 ffmpeg Thumbnail Extraction (DONE)
+### 6.2 ffmpeg/ffprobe Extraction (DONE)
 
-Extracts visual assets:
+Extracts visual assets and audio stream details:
 - Video: Frame at 10% duration, scaled to 320px width
 - Audio: Embedded album artwork
+- Audio: Stream details via ffprobe (sample rate, bit depth, channels, bitrate)
 
-Functions in `src/utils.py`:
+Functions in `src/utils/metadata.py`:
 - `extract_thumbnail(path, out_dir, release_name, media_type)`
 - `_extract_video_thumbnail(video_path, out_path)`
 - `_extract_album_art(audio_path, out_path)`
-- `extract_all_album_art(path, out_dir, release_name)` - Batch extraction
+- `_audio_props_from_ffprobe(path)`
 
 ### 6.3 NFO Enhancement (DONE)
 
 Metadata displayed in NFO files:
 - Separate METADATA section before MEDIA INFO
 - Fields formatted per media type
+- Music: audio details, embedded/extracted artwork summary, local lyrics summary (when available)
 - Falls back gracefully if extraction fails
 
 ### 6.4 Settings (DONE)

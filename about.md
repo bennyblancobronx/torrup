@@ -11,13 +11,13 @@ torrup is a local-first web UI + CLI for creating and uploading torrents. It pro
 - Music uploads fully working (browse, queue, prepare, upload)
 - Movies, TV, books: browsing and queuing works; metadata lookups (IMDB, TVMaze) not yet wired into uploads
 - Queue multiple items for batch upload
-- Generate NFO files using MediaInfo
+- Generate NFO files using MediaInfo (with music enhancements via exiftool + ffprobe, plus local lyrics/artwork when available)
 - Create torrents with mktorrent (private flag, source tag)
 - Check for duplicates via tracker search API (supports TorrentLeech)
 - Upload to trackers via API (supports TorrentLeech)
 - Track upload status per item
-- Metadata extraction via exiftool (optional)
-- Thumbnail extraction via ffmpeg (optional)
+- Metadata extraction via exiftool (optional, used for richer NFOs)
+- Thumbnail/artwork extraction via ffmpeg/ffprobe (optional)
 - CLI with 13 commands for scripting/automation
 - Health check endpoint for monitoring
 - Security: CSRF, rate limiting, security headers
@@ -26,7 +26,7 @@ torrup is a local-first web UI + CLI for creating and uploading torrents. It pro
 
 - **Backend:** Python 3.11 + Flask
 - **Database:** SQLite
-- **External Tools:** mediainfo, mktorrent, exiftool (optional), ffmpeg (optional)
+- **External Tools:** mediainfo, mktorrent, exiftool (optional), ffmpeg/ffprobe (optional)
 - **Deployment:** Docker (primary), native (secondary)
 
 ## Directory Structure

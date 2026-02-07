@@ -10,9 +10,11 @@ from src.utils.core import (
     suggest_release_name,
     validate_path_for_subprocess,
 )
+from src.utils.media import (
+    extract_thumbnail,
+)
 from src.utils.metadata import (
     extract_metadata,
-    extract_thumbnail,
     write_xml_metadata,
 )
 from src.utils.nfo import (

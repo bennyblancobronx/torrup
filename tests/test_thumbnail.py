@@ -9,7 +9,7 @@ import pytest
 
 os.environ.setdefault("TORRUP_OUTPUT_DIR", "/tmp/torrup-test-output")
 
-from src.utils.metadata import (
+from src.utils.media import (
     _extract_album_art,
     _extract_video_thumbnail,
 )

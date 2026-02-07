@@ -72,6 +72,26 @@ def generate_nfo(
 
     # Build metadata section if we have extracted data
     metadata_section = _format_metadata_section(metadata, media_type)
+    basic_info = ""
+    audio_details = ""
+    lyrics_section = ""
+    album_art_section = ""
+    if media_type == "music" and metadata:
+        basic_info = _format_music_basic_info(metadata)
+        audio_details = _format_audio_details(metadata)
+        lyrics_section = _format_lyrics_section(metadata)
+        art = metadata.get("album_art")
+        art_lines = []
+        if art:
+            art_lines.append(
+                f"  Embedded Art   : {art.get('format', 'image')}, {art.get('size', 'unknown size')}"
+            )
+        art_file = metadata.get("album_art_file")
+        if art_file:
+            art_lines.append(
+                f"  Extracted Art  : {art_file.get('name', 'artwork')}, {art_file.get('size', 'unknown size')}"
+            )
+        album_art_section = "\n".join(art_lines)
 
     # Get template
     template = NFO_TEMPLATES.get(media_type, NFO_TEMPLATES["movies"])
@@ -87,13 +107,25 @@ def generate_nfo(
         file_count=file_count,
         size=human_size(size_bytes),
         timestamp=timestamp,
+        basic_info=basic_info,
+        audio_details=audio_details,
+        lyrics_section=lyrics_section,
+        album_art_section=album_art_section,
     )
 
-    # Insert metadata section before mediainfo if available
+    # Clean empty optional sections for music (remove headers if body empty)
+    if media_type == "music":
+        nfo_content = _strip_empty_section(nfo_content, "BASIC INFO", basic_info)
+        nfo_content = _strip_empty_section(nfo_content, "AUDIO DETAILS", audio_details)
+        nfo_content = _strip_empty_section(nfo_content, "LYRICS", lyrics_section)
+        nfo_content = _strip_empty_section(nfo_content, "ALBUM ART", album_art_section)
+
+    # Insert metadata section before technical info if available
     if metadata_section:
+        info_header = "TECHNICAL INFO" if media_type == "music" else "MEDIA INFO"
         nfo_content = nfo_content.replace(
-            "MEDIA INFO",
-            f"METADATA\n{'-' * 80}\n{metadata_section}\n{'-' * 80}\n{'MEDIA INFO':^80}"
+            info_header,
+            f"METADATA\n{'-' * 80}\n{metadata_section}\n{'-' * 80}\n{info_header:^80}"
         )
 
     nfo_path.write_text(nfo_content)
@@ -125,14 +157,48 @@ def _format_metadata_section(metadata: dict, media_type: str) -> str:
     elif media_type == "music":
         if metadata.get("artist"):
             lines.append(f"  Artist         : {metadata['artist']}")
+        if metadata.get("album_artist") and metadata.get("album_artist") != metadata.get("artist"):
+            lines.append(f"  Album Artist   : {metadata['album_artist']}")
         if metadata.get("album"):
             lines.append(f"  Album          : {metadata['album']}")
         if metadata.get("track"):
             lines.append(f"  Track          : {metadata['track']}")
+        if metadata.get("track_number"):
+            track_total = metadata.get("track_total")
+            track_val = f"{metadata['track_number']}/{track_total}" if track_total else str(metadata['track_number'])
+            lines.append(f"  Track No.      : {track_val}")
+        if metadata.get("disc_number"):
+            disc_total = metadata.get("disc_total")
+            disc_val = f"{metadata['disc_number']}/{disc_total}" if disc_total else str(metadata['disc_number'])
+            lines.append(f"  Disc No.       : {disc_val}")
         if metadata.get("year"):
             lines.append(f"  Year           : {metadata['year']}")
         if metadata.get("genre"):
             lines.append(f"  Genre          : {metadata['genre']}")
+        if metadata.get("label"):
+            lines.append(f"  Label          : {metadata['label']}")
+        if metadata.get("catalog"):
+            lines.append(f"  Catalog        : {metadata['catalog']}")
+        if metadata.get("isrc"):
+            lines.append(f"  ISRC           : {metadata['isrc']}")
+        if metadata.get("composer"):
+            lines.append(f"  Composer       : {metadata['composer']}")
+        if metadata.get("format"):
+            lines.append(f"  Format         : {metadata['format']}")
+        if metadata.get("bitrate"):
+            lines.append(f"  Bitrate        : {metadata['bitrate']}")
+        if metadata.get("bitrate_kbps"):
+            lines.append(f"  Bitrate (kbps) : {metadata['bitrate_kbps']}")
+        if metadata.get("sample_rate"):
+            lines.append(f"  Sample Rate    : {metadata['sample_rate']}")
+        if metadata.get("bit_depth"):
+            lines.append(f"  Bit Depth      : {metadata['bit_depth']} bit")
+        if metadata.get("channels"):
+            lines.append(f"  Channels       : {metadata['channels']}")
+        if metadata.get("encoder"):
+            lines.append(f"  Encoder        : {metadata['encoder']}")
+        if metadata.get("embedded_lyrics"):
+            lines.append("  Embedded Lyrics: Yes")
 
     elif media_type == "books":
         if metadata.get("title"):
@@ -147,6 +213,80 @@ def _format_metadata_section(metadata: dict, media_type: str) -> str:
             lines.append(f"  ISBN           : {metadata['isbn']}")
 
     return "\n".join(lines)
+
+
+def _format_music_basic_info(metadata: dict) -> str:
+    """Minimum useful music fields for TL NFOs."""
+    lines = []
+    if metadata.get("artist"):
+        lines.append(f"  Artist         : {metadata['artist']}")
+    if metadata.get("album"):
+        lines.append(f"  Album          : {metadata['album']}")
+    if metadata.get("year"):
+        lines.append(f"  Year           : {metadata['year']}")
+    if metadata.get("genre"):
+        lines.append(f"  Genre          : {metadata['genre']}")
+    if metadata.get("track"):
+        lines.append(f"  Track          : {metadata['track']}")
+    if metadata.get("track_number"):
+        track_total = metadata.get("track_total")
+        track_val = f"{metadata['track_number']}/{track_total}" if track_total else str(metadata['track_number'])
+        lines.append(f"  Track No.      : {track_val}")
+    if metadata.get("disc_number"):
+        disc_total = metadata.get("disc_total")
+        disc_val = f"{metadata['disc_number']}/{disc_total}" if disc_total else str(metadata['disc_number'])
+        lines.append(f"  Disc No.       : {disc_val}")
+    return "\n".join(lines)
+
+
+def _format_audio_details(metadata: dict) -> str:
+    """Format technical audio fields for a compact section."""
+    lines = []
+    if metadata.get("format"):
+        lines.append(f"  Format         : {metadata['format']}")
+    if metadata.get("bitrate"):
+        lines.append(f"  Bitrate        : {metadata['bitrate']}")
+    if metadata.get("bitrate_kbps"):
+        lines.append(f"  Bitrate (kbps) : {metadata['bitrate_kbps']}")
+    if metadata.get("sample_rate"):
+        lines.append(f"  Sample Rate    : {metadata['sample_rate']}")
+    if metadata.get("bit_depth"):
+        lines.append(f"  Bit Depth      : {metadata['bit_depth']} bit")
+    if metadata.get("channels"):
+        lines.append(f"  Channels       : {metadata['channels']}")
+    if metadata.get("encoder"):
+        lines.append(f"  Encoder        : {metadata['encoder']}")
+    return "\n".join(lines)
+
+
+def _format_lyrics_section(metadata: dict) -> str:
+    """Format local lyrics file summary if present."""
+    if not metadata.get("lyrics"):
+        return ""
+    lines = []
+    total = metadata.get("lyrics_count")
+    if total:
+        lines.append(f"  Lyrics Files   : {total}")
+    for entry in metadata.get("lyrics", []):
+        track = entry.get("track")
+        lang = entry.get("lang")
+        if track and lang:
+            lines.append(f"  {track} ({lang})")
+        elif track:
+            lines.append(f"  {track}")
+    return "\n".join(lines)
+
+
+def _strip_empty_section(nfo: str, title: str, body: str) -> str:
+    """Remove a section if its body is empty or whitespace."""
+    if body and body.strip():
+        return nfo
+    header = (
+        "--------------------------------------------------------------------------------\n"
+        f"{title:^80}\n"
+        "--------------------------------------------------------------------------------\n"
+    )
+    return nfo.replace(header, "")
 
 
 def _extract_source(name: str) -> str:

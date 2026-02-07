@@ -357,6 +357,21 @@ class TestFormatMetadataSection:
         assert "Test Album" in result
         assert "Rock" in result
 
+    def test_format_metadata_music_audio_details(self):
+        metadata = {
+            "format": "FLAC",
+            "bitrate": "24bit",
+            "sample_rate": "44.1 kHz",
+            "bit_depth": "24",
+            "channels": "2.0",
+        }
+        result = _format_metadata_section(metadata, "music")
+        assert "FLAC" in result
+        assert "24bit" in result
+        assert "44.1 kHz" in result
+        assert "24 bit" in result
+        assert "2.0" in result
+
     def test_format_metadata_books(self):
         """Verify books metadata is formatted correctly."""
         metadata = {

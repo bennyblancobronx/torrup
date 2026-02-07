@@ -58,8 +58,8 @@ Browser <-> Flask App (routes.py) <-> SQLite DB (db.py)
 | mediainfo | Generate NFO metadata (technical specs) | Yes |
 | mktorrent | Create .torrent files | Yes |
 | curl | Health checks | Yes (Docker) |
-| exiftool | Metadata extraction (titles, artists, albums) | Yes |
-| ffmpeg/ffprobe | Thumbnail/artwork extraction | Yes |
+| exiftool | Metadata extraction (titles, artists, albums, music tags) | Optional |
+| ffmpeg/ffprobe | Thumbnail/artwork extraction + audio stream details | Optional |
 
 ---
 

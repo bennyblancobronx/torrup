@@ -214,7 +214,7 @@ Editable in settings:
 
 ### NFO Templates
 
-Each media type has a structured NFO template (defined in `src/config.py`):
+Each media type has a structured NFO template (defined in `src/config.py`). Music templates include extra sections for audio details, lyrics, and album art when available.
 
 ```
 ================================================================================
@@ -243,6 +243,9 @@ Template variables:
 - `{resolution}` - Extracted from release name (1080p, 4K, etc.)
 - `{format}` - For music/books (FLAC, EPUB, etc.)
 - `{mediainfo}` - Output from mediainfo command
+- `{audio_details}` - Music-only audio stream details (exiftool/ffprobe)
+- `{lyrics_section}` - Music-only local lyrics summary (if found)
+- `{album_art_section}` - Music-only embedded/extracted artwork summary
 - `{file_count}` - For books
 - `{size}` - Human-readable size
 - `{timestamp}` - Generation timestamp

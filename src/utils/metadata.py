@@ -1,4 +1,4 @@
-"""Metadata extraction utilities (exiftool, ffmpeg)."""
+"""Metadata extraction utilities (exiftool)."""
 
 from __future__ import annotations
 
@@ -11,13 +11,19 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from src.utils.core import human_size, now_iso, validate_path_for_subprocess
+from src.utils.media import (
+    AUDIO_PRIORITY,
+    _album_art_from_exif,
+    _audio_props_from_ffprobe,
+    _extract_album_art,
+    _extract_video_thumbnail,
+    _find_local_lyrics,
+    _find_primary_file,
+    _has_embedded_lyrics,
+    extract_thumbnail,
+)
 
 logger = logging.getLogger(__name__)
-
-# Higher priority formats first (lower number = preferred).
-AUDIO_PRIORITY = {".flac": 0, ".wav": 1, ".m4a": 2, ".mp3": 3, ".ogg": 4, ".opus": 5}
-
-_SKIP_SUFFIXES = {".tmp", ".bak"}
 
 
 def write_xml_metadata(
@@ -100,9 +106,29 @@ def extract_metadata(path: Path, media_type: str = "movies") -> dict:
                 # Derive audio properties from the same exiftool output.
                 if media_type == "music":
                     result.update(_audio_props_from_exif(raw))
+                    if _has_embedded_lyrics(raw):
+                        result["embedded_lyrics"] = True
+                    art = _album_art_from_exif(raw)
+                    if art:
+                        result["album_art"] = art
+
+        # Local lyrics lookup (sidecar .lrc/.txt) for music
+        if media_type == "music" and path:
+            lyrics = _find_local_lyrics(path)
+            if lyrics:
+                result["lyrics"] = lyrics
+                result["lyrics_count"] = len(lyrics)
 
     except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError, json.JSONDecodeError):
         pass
+
+    # ffprobe fallback / augmentation for music audio details
+    if media_type == "music" and target:
+        ffprobe_data = _audio_props_from_ffprobe(target)
+        if ffprobe_data:
+            for k, v in ffprobe_data.items():
+                if not result.get(k):
+                    result[k] = v
 
     return {k: v for k, v in result.items() if v}
 
@@ -143,11 +169,52 @@ def _audio_props_from_exif(raw: dict) -> dict:
 
         # Channels
         ch = raw.get("Channels", 2)
-        props["channels"] = "2.0" if int(ch) == 2 else "1.0"
+        ch_val = int(ch)
+        if ch_val == 1:
+            props["channels"] = "1.0"
+        elif ch_val == 2:
+            props["channels"] = "2.0"
+        elif ch_val == 6:
+            props["channels"] = "5.1"
+        elif ch_val == 8:
+            props["channels"] = "7.1"
+        else:
+            props["channels"] = str(ch_val)
+
+        # Sample rate
+        sr = raw.get("SampleRate") or raw.get("AudioSampleRate")
+        if sr:
+            try:
+                sr_val = float(sr)
+                props["sample_rate"] = f"{sr_val / 1000:.1f} kHz" if sr_val >= 1000 else f"{sr_val:.0f} Hz"
+            except (ValueError, TypeError):
+                pass
+
+        # Bit depth
+        bits = raw.get("BitsPerSample") or raw.get("BitDepth")
+        if bits:
+            props["bit_depth"] = str(int(bits))
+
+        # Encoder
+        encoder = raw.get("Encoder") or raw.get("EncodedBy") or raw.get("Tool")
+        if encoder:
+            props["encoder"] = str(encoder)
+
+        # Bitrate (kbps)
+        br = raw.get("AudioBitrate") or raw.get("BitRate")
+        if br:
+            if isinstance(br, str):
+                br = "".join(filter(str.isdigit, br))
+            try:
+                br_val = int(br)
+                props["bitrate_kbps"] = f"{int(br_val / 1000)} kbps"
+            except (ValueError, TypeError):
+                pass
     except (ValueError, TypeError):
         pass
 
     return props
+
 
 def _extract_ids_from_nfos(path: Path) -> dict:
     """Scan directory for .nfo files and extract IMDB/TVMaze IDs."""
@@ -168,7 +235,7 @@ def _extract_ids_from_nfos(path: Path) -> dict:
             imdb_match = imdb_pattern.search(content)
             if imdb_match and not ids.get("imdb"):
                 ids["imdb"] = imdb_match.group(0)
-            
+
             # TVMaze
             tvmaze_match = tvmaze_pattern.search(content)
             if tvmaze_match and not ids.get("tvmazeid"):
@@ -176,51 +243,6 @@ def _extract_ids_from_nfos(path: Path) -> dict:
         except Exception:
             continue
     return ids
-
-
-def _find_primary_file(path: Path, media_type: str) -> Path | None:
-    """Find the primary file to extract metadata from.
-
-    For music, files are sorted by format quality (FLAC > WAV > M4A > MP3 > OGG > OPUS).
-    Hidden files (starting with '.') and temp files (.tmp, .bak) are always skipped.
-    """
-    if path.is_file():
-        return path
-
-    extensions = {
-        "movies": {".mkv", ".mp4", ".avi", ".m4v"},
-        "tv": {".mkv", ".mp4", ".avi", ".m4v"},
-        "music": set(AUDIO_PRIORITY.keys()),
-        "books": {".epub", ".pdf", ".mobi", ".azw3"},
-    }
-
-    exts = extensions.get(media_type, extensions["movies"])
-
-    if media_type == "music":
-        # Collect all valid audio files, then pick the highest quality format.
-        audio_files = [
-            f
-            for f in path.rglob("*")
-            if f.is_file()
-            and not f.name.startswith(".")
-            and f.suffix.lower() not in _SKIP_SUFFIXES
-            and f.suffix.lower() in exts
-        ]
-        if not audio_files:
-            return None
-        audio_files.sort(key=lambda f: AUDIO_PRIORITY.get(f.suffix.lower(), 99))
-        return audio_files[0]
-
-    # Non-music: return first matching file (skip hidden/temp).
-    for f in path.rglob("*"):
-        if (
-            f.is_file()
-            and not f.name.startswith(".")
-            and f.suffix.lower() not in _SKIP_SUFFIXES
-            and f.suffix.lower() in exts
-        ):
-            return f
-    return None
 
 
 def _normalize_metadata(raw: dict, media_type: str) -> dict:
@@ -231,11 +253,11 @@ def _normalize_metadata(raw: dict, media_type: str) -> dict:
         result["title"] = raw.get("Title") or raw.get("MovieName") or ""
         result["year"] = raw.get("Year") or raw.get("ContentCreateDate", "")[:4] if raw.get("ContentCreateDate") else ""
         result["description"] = raw.get("Description") or raw.get("Comment") or ""
-        
+
         # ID Extraction from tags
         result["imdb"] = raw.get("IMDB") or raw.get("IMDB_ID") or ""
         result["tvmazeid"] = raw.get("TVMAZE_ID") or raw.get("TVMazeID") or ""
-        
+
         # TV specific
         if media_type == "tv":
             result["show"] = raw.get("TVShow") or raw.get("Album") or ""
@@ -244,11 +266,19 @@ def _normalize_metadata(raw: dict, media_type: str) -> dict:
 
     elif media_type == "music":
         result["artist"] = raw.get("Artist") or raw.get("AlbumArtist") or ""
+        result["album_artist"] = raw.get("AlbumArtist") or raw.get("Band") or ""
         result["album"] = raw.get("Album") or ""
         result["track"] = raw.get("Title") or raw.get("Track") or ""
         result["year"] = str(raw.get("Year") or "")
         result["genre"] = raw.get("Genre") or ""
         result["track_number"] = raw.get("TrackNumber") or ""
+        result["track_total"] = raw.get("TrackCount") or raw.get("TrackTotal") or ""
+        result["disc_number"] = raw.get("DiscNumber") or raw.get("Disc") or ""
+        result["disc_total"] = raw.get("DiscCount") or raw.get("DiscTotal") or ""
+        result["label"] = raw.get("RecordLabel") or raw.get("Label") or raw.get("Publisher") or ""
+        result["catalog"] = raw.get("CatalogNumber") or raw.get("CatalogNo") or ""
+        result["isrc"] = raw.get("ISRC") or raw.get("ISRCCode") or ""
+        result["composer"] = raw.get("Composer") or ""
 
     elif media_type == "books":
         result["title"] = raw.get("Title") or ""
@@ -259,90 +289,3 @@ def _normalize_metadata(raw: dict, media_type: str) -> dict:
 
     # Clean empty strings
     return {k: v for k, v in result.items() if v}
-
-
-def extract_thumbnail(
-    path: Path,
-    out_dir: Path,
-    release_name: str,
-    media_type: str = "movies",
-) -> Path | None:
-    """Extract thumbnail from video or album art from audio.
-
-    Returns path to extracted image or None if extraction failed.
-    """
-    target = _find_primary_file(path, media_type)
-    if not target or not validate_path_for_subprocess(target):
-        return None
-
-    thumb_path = out_dir / f"{release_name}.jpg"
-
-    if media_type in ("movies", "tv"):
-        return _extract_video_thumbnail(target, thumb_path)
-    elif media_type == "music":
-        return _extract_album_art(target, thumb_path)
-
-    return None
-
-
-def _extract_video_thumbnail(video_path: Path, out_path: Path) -> Path | None:
-    """Extract a frame from video at ~10% duration."""
-    try:
-        # Get duration first
-        probe_cmd = [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "json",
-            str(video_path),
-        ]
-        result = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=30)
-
-        seek_time = "00:00:30"  # Default to 30 seconds
-        if result.returncode == 0:
-            try:
-                data = json.loads(result.stdout)
-                duration = float(data.get("format", {}).get("duration", 300))
-                seek_seconds = int(duration * 0.1)  # 10% into video
-                seek_time = f"{seek_seconds // 3600:02d}:{(seek_seconds % 3600) // 60:02d}:{seek_seconds % 60:02d}"
-            except (json.JSONDecodeError, ValueError, KeyError):
-                pass
-
-        # Extract frame
-        cmd = [
-            "ffmpeg", "-y",
-            "-ss", seek_time,
-            "-i", str(video_path),
-            "-vframes", "1",
-            "-vf", "scale=320:-1",
-            "-q:v", "2",
-            str(out_path),
-        ]
-        result = subprocess.run(cmd, capture_output=True, timeout=60)
-
-        if out_path.exists() and out_path.stat().st_size > 0:
-            return out_path
-    except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError):
-        pass
-
-    return None
-
-
-def _extract_album_art(audio_path: Path, out_path: Path) -> Path | None:
-    """Extract embedded album artwork from audio file."""
-    try:
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", str(audio_path),
-            "-an",
-            "-vcodec", "mjpeg",
-            "-vframes", "1",
-            str(out_path),
-        ]
-        result = subprocess.run(cmd, capture_output=True, timeout=30)
-
-        if out_path.exists() and out_path.stat().st_size > 0:
-            return out_path
-    except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError):
-        pass
-
-    return None
