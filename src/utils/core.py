@@ -117,7 +117,13 @@ def suggest_release_name(media_type: str, path: Path) -> str:
     return sanitize_release_name(base)
 
 
+# OS junk files always excluded regardless of user settings
+_ALWAYS_EXCLUDED = frozenset({".ds_store", "thumbs.db", ".thumbs", "@eadir"})
+
+
 def is_excluded(path: Path, excludes: list[str]) -> bool:
     """Check if path should be excluded based on its name."""
     name = path.name.lower()
+    if name in _ALWAYS_EXCLUDED:
+        return True
     return any(ex.lower() == name for ex in excludes)

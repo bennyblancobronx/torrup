@@ -38,7 +38,7 @@ DEFAULT_TEMPLATES = {
 
 DEFAULT_RELEASE_GROUP = "torrup"
 
-DEFAULT_EXCLUDES = "torrents,downloads,tmp,trash,incomplete,processing"
+DEFAULT_EXCLUDES = ".DS_Store,Thumbs.db,torrents,downloads,tmp,trash,incomplete,processing"
 
 # qBitTorrent Defaults
 QBT_DEFAULT_URL = "http://localhost:8080"

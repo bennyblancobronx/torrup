@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual scan button on dashboard (Scan Now) triggers scan of enabled roots via POST /api/scan/trigger
 - Docker :latest tag on GHCR releases for easy updates (docker compose pull)
 
+- Auto-exclude .DS_Store, Thumbs.db, @eaDir, and .thumbs from all browsing and scanning
+
 ### Changed
 - Dashboard: removed Browse Library section (redundant with /browse page)
 - docker-compose.yml: defaults to pre-built GHCR image instead of local build
