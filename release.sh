@@ -13,24 +13,31 @@ if [[ ! $VERSION =~ ^v ]]; then
     VERSION="v$VERSION"
 fi
 
-echo "Releasing $VERSION..."
+# Version without v
+PLAIN_VERSION="${VERSION#v}"
 
-# 1. Update VERSION in Dockerfile (optional as we use build-args now, but good for local)
-# sed -i '' "s/ARG VERSION=.*/ARG VERSION=${VERSION#v}/" Dockerfile
+echo "Releasing $VERSION ($PLAIN_VERSION)..."
 
-# 2. Update APP_VERSION in src/config.py
-sed -i '' "s/APP_VERSION = ".*"/APP_VERSION = "${VERSION#v}"/" src/config.py
+# Detect OS for sed differences
+case "$(uname)" in
+    Darwin*)  SED_I=(sed -i '') ;;
+    *)        SED_I=(sed -i)    ;;
+esac
 
-# 3. Update version in README.md
-sed -i '' "s/^## Version.*/## Version
+# 1. Update APP_VERSION in src/config.py
+"${SED_I[@]}" "s/APP_VERSION = \".*\"/APP_VERSION = \"$PLAIN_VERSION\"/" src/config.py
 
-${VERSION#v}/" README.md
+# 2. Update version in README.md (using a simpler pattern)
+# We match the line after '## Version'
+"${SED_I[@]}" "/## Version/!b;n;c\\
+\\
+$PLAIN_VERSION" README.md
 
-# 4. Commit changes
+# 3. Commit changes
 git add src/config.py README.md
 git commit -m "Bump version to $VERSION"
 
-# 5. Tag and push
+# 4. Tag and push
 git tag -a "$VERSION" -m "Release $VERSION"
 git push origin main
 git push origin "$VERSION"
