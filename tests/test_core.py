@@ -205,13 +205,13 @@ class TestIsExcluded:
     def test_is_excluded_matches_name(self, tmp_path):
         """Verify path with excluded name is detected."""
         excludes = ["tmp", "trash", "torrents"]
-        path = tmp_path / "downloads" / "tmp" / "file.txt"
+        path = tmp_path / "downloads" / "tmp"
         assert is_excluded(path, excludes) is True
 
     def test_is_excluded_case_insensitive(self, tmp_path):
         """Verify exclusion is case-insensitive."""
         excludes = ["tmp"]
-        path = tmp_path / "TMP" / "file.txt"
+        path = tmp_path / "music" / "TMP"
         assert is_excluded(path, excludes) is True
 
     def test_is_excluded_returns_false(self, tmp_path):

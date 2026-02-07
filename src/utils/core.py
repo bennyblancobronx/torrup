@@ -118,9 +118,6 @@ def suggest_release_name(media_type: str, path: Path) -> str:
 
 
 def is_excluded(path: Path, excludes: list[str]) -> bool:
-    """Check if path should be excluded based on directory names."""
-    parts = {p.lower() for p in path.parts}
-    for ex in excludes:
-        if ex.lower() in parts:
-            return True
-    return False
+    """Check if path should be excluded based on its name."""
+    name = path.name.lower()
+    return any(ex.lower() == name for ex in excludes)
