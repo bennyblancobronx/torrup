@@ -1,15 +1,6 @@
 // Dashboard page logic
 // Requires: window.categoryOptions, window.csrfToken (set inline by template)
 
-const mediaTypeSelect = document.getElementById('media-type');
-const fileList = document.getElementById('file-list');
-const breadcrumb = document.getElementById('breadcrumb');
-const selectedCount = document.getElementById('selected-count');
-const selected = new Map();
-
-let currentPath = '';
-let currentDefaultCategory = null;
-
 function csrfHeaders() {
   return window.csrfToken ? { 'X-CSRFToken': window.csrfToken } : {};
 }
@@ -18,108 +9,6 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text || '';
   return div.innerHTML;
-}
-
-function clearSelections() {
-  selected.clear();
-  selectedCount.textContent = '0 selected';
-}
-
-function updateSelectedCount() {
-  selectedCount.textContent = `${selected.size} selected`;
-}
-
-function makeBreadcrumb(root, path, parent) {
-  breadcrumb.innerHTML = '';
-  const rootBtn = document.createElement('button');
-  rootBtn.className = 'btn btn-ghost btn-sm';
-  rootBtn.textContent = root.split('/').pop() || root;
-  rootBtn.onclick = () => browse('');
-  breadcrumb.appendChild(rootBtn);
-
-  if (parent) {
-    const upBtn = document.createElement('button');
-    upBtn.className = 'btn btn-ghost btn-sm';
-    upBtn.textContent = '.. (up)';
-    upBtn.onclick = () => browse(parent);
-    breadcrumb.appendChild(upBtn);
-  }
-
-  const pathBadge = document.createElement('span');
-  pathBadge.className = 'badge';
-  pathBadge.textContent = path;
-  breadcrumb.appendChild(pathBadge);
-}
-
-async function browse(path = '') {
-  clearSelections();
-  const mediaType = mediaTypeSelect.value;
-  const response = await fetch(`/api/browse?media_type=${encodeURIComponent(mediaType)}&path=${encodeURIComponent(path)}`);
-  const data = await response.json();
-  if (data.error) {
-    alert(data.error);
-    return;
-  }
-  currentPath = data.path;
-  currentDefaultCategory = data.default_category;
-  makeBreadcrumb(data.root || data.path, data.path, data.parent);
-  fileList.innerHTML = '';
-  data.items.forEach(item => {
-    const row = document.createElement('div');
-    row.className = 'file-item';
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.onchange = () => {
-      if (checkbox.checked) {
-        selected.set(item.path, item);
-      } else {
-        selected.delete(item.path);
-      }
-      updateSelectedCount();
-    };
-    const name = document.createElement('div');
-    name.className = 'file-name-text';
-    name.textContent = item.name;
-    name.title = item.path;
-    name.onclick = () => {
-      if (item.is_dir) {
-        browse(item.path);
-      }
-    };
-    const size = document.createElement('div');
-    size.className = 'text-muted text-sm';
-    size.textContent = item.size;
-    row.appendChild(checkbox);
-    row.appendChild(name);
-    row.appendChild(size);
-    fileList.appendChild(row);
-  });
-}
-
-async function addQueue() {
-  if (!selected.size) return;
-  const mediaType = mediaTypeSelect.value;
-  const items = Array.from(selected.values()).map(item => {
-    const defaultCategory = currentDefaultCategory || window.categoryOptions[mediaType][0].id;
-    return {
-      media_type: mediaType,
-      path: item.path,
-      category: defaultCategory,
-    };
-  });
-
-  const res = await fetch('/api/queue/add', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
-    body: JSON.stringify({ items })
-  });
-  const data = await res.json();
-  if (!data.success) {
-    alert(data.error || 'Failed to add queue');
-    return;
-  }
-  clearSelections();
-  await loadQueue();
 }
 
 function statusBadge(status) {
@@ -255,12 +144,8 @@ async function renderMonthlyChart() {
   }
 }
 
-document.getElementById('refresh').onclick = () => browse(currentPath);
-document.getElementById('add-queue').onclick = addQueue;
 document.getElementById('reload-queue').onclick = loadQueue;
-mediaTypeSelect.onchange = () => browse('');
 
-browse('');
 loadQueue();
 loadStats();
 checkActivityHealth();

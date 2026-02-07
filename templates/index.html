@@ -20,61 +20,6 @@
   </script>
   <style>
     /* Page-specific styles */
-    .file-list-container {
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      margin-bottom: var(--space-4);
-    }
-
-    .file-list {
-      max-height: 420px;
-      overflow-y: auto;
-    }
-
-    .file-item {
-      display: grid;
-      grid-template-columns: 26px 1fr 120px;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-3);
-      border-bottom: 1px solid var(--color-border);
-      align-items: center;
-      transition: background-color var(--duration-fast) var(--ease-out);
-    }
-
-    .file-item:last-child {
-      border-bottom: none;
-    }
-
-    .file-item:hover {
-      background-color: rgba(0, 0, 0, 0.02);
-    }
-
-    [data-theme="dark"] .file-item:hover {
-      background-color: rgba(255, 255, 255, 0.03);
-    }
-
-    .file-name-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      cursor: pointer;
-    }
-
-    .file-name-text:hover {
-      color: var(--color-accent);
-    }
-
-    .breadcrumb-nav {
-      display: flex;
-      gap: var(--space-2);
-      flex-wrap: wrap;
-      margin-bottom: var(--space-2);
-    }
-
-    .breadcrumb-nav button {
-      height: auto;
-    }
   </style>
 </head>
 <body>
@@ -109,7 +54,10 @@
 
     <!-- Stats -->
     <div class="card mb-6">
-      <h2 class="section-title">System Status</h2>
+      <div class="flex items-center justify-between">
+        <h2 class="section-title">System Status</h2>
+        <button class="btn btn-primary btn-sm" id="scan-now">Scan Now</button>
+      </div>
       <div id="stats-summary" class="text-muted text-sm">
         Loading stats...
       </div>
@@ -119,31 +67,6 @@
     <div class="card mb-6" id="monthly-chart" style="display:none;">
       <h2 class="section-title">Monthly Uploads (last 6 months)</h2>
       <div id="chart-bars" style="display:flex; align-items:flex-end; gap:var(--space-2); height:120px;"></div>
-    </div>
-
-    <!-- Browse Library -->
-    <div class="card mb-6">
-      <h2 class="section-title">Browse Library</h2>
-      <div class="flex items-center gap-4 flex-wrap mb-4">
-        <label for="media-type" class="form-label mb-0">Media type</label>
-        <select id="media-type" style="width: auto; min-width: 160px;">
-          {% for mt in media_types %}
-          <option value="{{ mt }}" {% if mt != 'music' %}disabled{% endif %}>{{ mt }}{% if mt != 'music' %} (coming soon){% endif %}</option>
-          {% endfor %}
-        </select>
-        <button class="btn btn-ghost btn-sm" id="refresh">Refresh</button>
-      </div>
-
-      <div class="breadcrumb-nav" id="breadcrumb"></div>
-      <div class="file-list-container">
-        <div class="file-list" id="file-list"></div>
-      </div>
-
-      <div class="flex items-center gap-4 flex-wrap">
-        <button class="btn btn-primary btn-md" id="add-queue">Add Selected to Queue</button>
-        <span class="text-muted text-sm" id="selected-count">0 selected</span>
-      </div>
-      <div class="form-hint mt-2">This view only shows enabled media roots and skips excluded folders from settings.</div>
     </div>
 
     <!-- Queue -->
@@ -175,5 +98,33 @@
     window.csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
   </script>
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  <script>
+    // Scan Now button
+    document.getElementById('scan-now')?.addEventListener('click', async function() {
+      const btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Scanning...';
+      try {
+        const res = await fetch('/api/scan/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders() }
+        });
+        const data = await res.json();
+        if (data.success) {
+          btn.textContent = 'Scan started';
+          setTimeout(() => { btn.textContent = 'Scan Now'; btn.disabled = false; }, 5000);
+          setTimeout(loadStats, 3000);
+        } else {
+          alert(data.error || 'Scan failed');
+          btn.textContent = 'Scan Now';
+          btn.disabled = false;
+        }
+      } catch (err) {
+        alert('Scan request failed');
+        btn.textContent = 'Scan Now';
+        btn.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
