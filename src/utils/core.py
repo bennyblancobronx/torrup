@@ -47,6 +47,7 @@ def get_folder_size(path: Path, max_files: int = 50000) -> int:
 
 def sanitize_release_name(name: str) -> str:
     """Clean up release name for torrent naming. Prevent path traversal."""
+    name = str(name) if name is not None else ""
     if not name:
         return "unnamed"
     # Remove any path components

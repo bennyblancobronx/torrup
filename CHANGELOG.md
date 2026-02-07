@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.12] - 2026-02-07
+
+### Fixed
+- Scan crash on artists with numeric names (e.g. "3030"): exiftool -n flag returned artist as integer, sanitize_release_name now casts to str
+- One bad album during scan rolled back the entire transaction: per-entry error handling so other albums still get queued
+- Manual scan error log missing traceback: added exc_info=True
+
 ## [0.1.11] - 2026-02-07
 
 ### Changed

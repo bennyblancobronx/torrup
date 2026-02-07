@@ -1,6 +1,6 @@
 # torrup - Torrent Upload Tool
 
-**Version:** 0.1.11
+**Version:** 0.1.12
 
 ## What It Is
 

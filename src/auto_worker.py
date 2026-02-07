@@ -100,37 +100,41 @@ def _scan_root(conn, root, excludes):
         entries = [e for e in base_path.iterdir() if not is_excluded(e, excludes)]
 
     for entry in entries:
-        # Check if already in queue or history
-        exists_in_db = conn.execute(
-            "SELECT 1 FROM queue WHERE path = ?", (str(entry),)
-        ).fetchone()
+        try:
+            # Check if already in queue or history
+            exists_in_db = conn.execute(
+                "SELECT 1 FROM queue WHERE path = ?", (str(entry),)
+            ).fetchone()
 
-        if exists_in_db:
-            continue
+            if exists_in_db:
+                continue
 
-        metadata = extract_metadata(entry, media_type)
-        release_name = generate_release_name(metadata, media_type, release_group)
-        if not release_name or release_name == "unnamed" or "Unknown" in release_name:
-            release_name = suggest_release_name(media_type, entry)
+            metadata = extract_metadata(entry, media_type)
+            release_name = generate_release_name(metadata, media_type, release_group)
+            if not release_name or release_name == "unnamed" or "Unknown" in release_name:
+                release_name = suggest_release_name(media_type, entry)
 
-        if not release_name:
-            continue
+            if not release_name:
+                continue
 
-        # Check TL (exact=False for fuzzy matching, rate-limited)
-        if check_exists(release_name, exact=False):
-            logger.info(f"Auto-scan: {release_name} already on TL, skipping.")
-            _add_to_queue_silent(
-                conn, media_type, entry, release_name,
-                category, "duplicate", "Found during auto-scan", metadata,
-            )
+            # Check TL (exact=False for fuzzy matching, rate-limited)
+            if check_exists(release_name, exact=False):
+                logger.info(f"Auto-scan: {release_name} already on TL, skipping.")
+                _add_to_queue_silent(
+                    conn, media_type, entry, release_name,
+                    category, "duplicate", "Found during auto-scan", metadata,
+                )
+                time.sleep(1.5)
+                continue
+
             time.sleep(1.5)
+
+            # Not on TL, add to queue
+            logger.info(f"Auto-scan: Found new content {release_name}, adding to queue.")
+            _add_to_queue(conn, media_type, entry, release_name, category, metadata)
+        except Exception as e:
+            logger.error(f"Auto-scan: Error processing {entry}: {e}")
             continue
-
-        time.sleep(1.5)
-
-        # Not on TL, add to queue
-        logger.info(f"Auto-scan: Found new content {release_name}, adding to queue.")
-        _add_to_queue(conn, media_type, entry, release_name, category, metadata)
 
 
 def _add_to_queue(conn, media_type, path, release_name, category, metadata):

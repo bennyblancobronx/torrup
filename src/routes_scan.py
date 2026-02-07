@@ -37,7 +37,7 @@ def trigger_scan():
                     )
                     conn.commit()
             except Exception as e:
-                logger.error(f"Manual scan error for {root['media_type']}: {e}")
+                logger.error(f"Manual scan error for {root['media_type']}: {e}", exc_info=True)
 
     threading.Thread(target=run_scan, daemon=True).start()
     return jsonify({"success": True, "message": f"Scan started for {len(enabled_roots)} root(s)"}), 200
