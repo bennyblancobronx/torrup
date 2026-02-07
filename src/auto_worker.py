@@ -110,19 +110,23 @@ def _scan_root(conn, root, excludes, source="Auto-scan"):
                 continue
 
             metadata = extract_metadata(entry, media_type)
-            release_name = generate_release_name(metadata, media_type, release_group)
-            if not release_name or release_name == "unnamed" or "Unknown" in release_name:
-                release_name = suggest_release_name(media_type, entry)
 
-            if not release_name:
+            # Build a human-readable search query from raw metadata.
+            # TL search needs natural terms (e.g. "3030 Quinta Dimensao"),
+            # not formatted release names ("3030-Quinta.Dimensao-2012-WEB-FLAC-16bit-torrup").
+            search_query = _build_search_query(metadata, media_type, entry)
+
+            if not search_query:
                 continue
 
-            # Check TL (exact=False for fuzzy matching, rate-limited)
-            if check_exists(release_name, exact=False):
-                logger.info(f"{source}: {release_name} already on TL, skipping.")
+            # Check TL with the natural search query
+            if check_exists(search_query, exact=False):
+                logger.info(f"{source}: '{search_query}' found on TL, skipping.")
+                # Still generate a release name for the queue record
+                release_name = _make_release_name(metadata, media_type, release_group, entry)
                 _add_to_queue_silent(
                     conn, media_type, entry, release_name,
-                    category, "duplicate", "Found during auto-scan", metadata,
+                    category, "duplicate", f"TL match for: {search_query}", metadata,
                 )
                 conn.commit()
                 time.sleep(1.5)
@@ -130,13 +134,49 @@ def _scan_root(conn, root, excludes, source="Auto-scan"):
 
             time.sleep(1.5)
 
-            # Not on TL, add to queue
-            logger.info(f"{source}: Found new content {release_name}, adding to queue.")
+            # Not on TL, generate the formatted release name for upload
+            release_name = _make_release_name(metadata, media_type, release_group, entry)
+
+            logger.info(f"{source}: '{search_query}' not on TL, queuing as {release_name}")
             _add_to_queue(conn, media_type, entry, release_name, category, metadata)
             conn.commit()
         except Exception as e:
             logger.error(f"{source}: Error processing {entry}: {e}")
             continue
+
+
+def _build_search_query(metadata: dict, media_type: str, entry: Path) -> str:
+    """Build a human-readable search query from raw metadata.
+
+    Uses the raw artist + album (for music) or title from metadata,
+    falling back to the folder name. No sanitization that would mangle
+    the name into a release-name format -- this is for searching TL.
+    """
+    if media_type == "music":
+        artist = str(metadata.get("artist", "")).strip()
+        album = str(metadata.get("album", "")).strip()
+        if artist and album:
+            return f"{artist} {album}"
+        if album:
+            return album
+        if artist:
+            return artist
+    else:
+        title = str(metadata.get("title", "")).strip()
+        if title:
+            return title
+
+    # Fallback: use the folder/file name as-is
+    name = entry.name if entry.is_dir() else entry.stem
+    return name.strip() if name else ""
+
+
+def _make_release_name(metadata: dict, media_type: str, release_group: str, entry: Path) -> str:
+    """Generate a formatted release name, with fallback to folder name."""
+    release_name = generate_release_name(metadata, media_type, release_group)
+    if not release_name or release_name == "unnamed" or "Unknown" in release_name:
+        release_name = suggest_release_name(media_type, entry)
+    return release_name or "unnamed"
 
 
 def _add_to_queue(conn, media_type, path, release_name, category, metadata):

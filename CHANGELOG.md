@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.14] - 2026-02-07
+
+### Fixed
+- TL duplicate search was using formatted release names (e.g. "3030-Quinta.Dimensao-2012-WEB-FLAC-16bit-torrup") instead of natural search terms (e.g. "3030 Quinta Dimensao"), causing almost everything to appear as "not on TL"
+- Search now uses raw artist + album from metadata (or folder name as fallback) for TL lookup; formatted release name is only generated after the search for items that actually need uploading
+
 ## [0.1.13] - 2026-02-07
 
 ### Added
