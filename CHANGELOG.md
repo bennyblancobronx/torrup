@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed category mapping functions (parse_qbt_category_map, map_media_type_to_qbt_category, map_qbt_category_to_media_type)
 - Settings UI: qBT section now just enabled toggle + URL/user/pass + test button
 
+### Fixed
+- is_excluded() false positive on Linux: was checking all path parts including system /tmp, now checks entry name only
+
 ### Docs
 - Updated techguide.md, contracts.md, CLI_REFERENCE.md, GUI docs to reflect simplified qBT integration
 
