@@ -48,6 +48,17 @@ def update_queue_status(
     )
 
 
+def _cleanup_staging(item_id: int, *paths) -> None:
+    """Remove staging files from output dir after successful upload."""
+    for p in paths:
+        if not p:
+            continue
+        try:
+            Path(p).unlink(missing_ok=True)
+        except OSError as e:
+            logger.warning(f"Item {item_id}: Could not remove {Path(p).name}: {e}")
+
+
 def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
     """Process a single queue item through the upload pipeline."""
     item_id = item["id"]
@@ -167,19 +178,12 @@ def process_queue_item(conn: sqlite3.Connection, item: sqlite3.Row) -> None:
                 tl_torrent = out_dir / f"{release_name}.tl.torrent"
                 if download_torrent(tid, tl_torrent):
                     add_to_qbt(tl_torrent, path)
-                    # Clean up temp local .torrent (mktorrent output)
-                    try:
-                        Path(torrent_path).unlink(missing_ok=True)
-                    except OSError as e:
-                        logger.warning(f"Item {item_id}: Could not remove temp torrent: {e}")
-                    # Update DB to point at TL's .torrent
-                    conn.execute(
-                        "UPDATE queue SET torrent_path = ?, updated_at = ? WHERE id = ?",
-                        (str(tl_torrent), now_iso(), item_id),
-                    )
                 else:
                     logger.warning(f"Item {item_id}: TL torrent download failed, seeding with local copy")
                     add_to_qbt(torrent_path, path)
+
+            # Clean up staging files -- output dir is a cache, not permanent storage
+            _cleanup_staging(item_id, torrent_path, nfo_path, xml_path, thumb_path)
         else:
             logger.warning(f"Item {item_id}: Upload failed - {result.get('error')}")
             update_queue_status(conn, item_id, "failed", f"Upload failed: {result.get('error')}")

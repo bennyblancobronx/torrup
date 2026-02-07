@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-exclude .DS_Store, Thumbs.db, @eaDir, and .thumbs from all browsing and scanning
 
 ### Changed
+- Output dir is now a self-cleaning cache: staging files (.nfo, .xml, .thumb, .torrent) removed after successful upload
+- Docker output dir switched from host volume to tmpfs (ephemeral, clears on restart)
 - Dashboard: removed Browse Library section (redundant with /browse page)
 - docker-compose.yml: defaults to pre-built GHCR image instead of local build
 - Split scan endpoint into src/routes_scan.py for file size compliance

@@ -17,7 +17,6 @@ services:
       # - TORRUP_AUTH_PASS=${TORRUP_AUTH_PASS}
     volumes:
       - ./data:/app/data
-      - ./output:/app/output
       - ${MEDIA_PATH:-/volume/media}:/volume/media:ro
     restart: unless-stopped
     read_only: true
@@ -27,6 +26,7 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp
+      - /app/output
     mem_limit: 1g
     cpus: '2.0'
     stop_grace_period: 60s

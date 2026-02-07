@@ -115,8 +115,12 @@ Background processing loop:
 4. Create torrent with mktorrent
 5. Write XML sidecar
 6. Upload to tracker
-7. Update status (success/failed/duplicate)
-8. After each processed item, check activity health and send ntfy notification if critical
+7. If qBT enabled: download TL's official .torrent and send to qBT
+8. Clean up staging files (.nfo, .xml, .thumb, .torrent) from output dir
+9. Update status (success/failed/duplicate)
+10. After each processed item, check activity health and send ntfy notification if critical
+
+Output dir is a cache -- staging files are removed after successful upload. Failed items keep their files for debugging.
 
 ### Auto-Scan Worker (src/auto_worker.py)
 
