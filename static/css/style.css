@@ -472,6 +472,11 @@ pre {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-light);
   color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.header-version:hover {
+  color: var(--color-accent);
 }
 
 .header-nav {

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.9] - 2026-02-06
 
 ### Added
+- Changelog page: GET /changelog renders CHANGELOG.md as styled HTML with version cards
+- Version number in header is now a clickable link to /changelog on all pages
 - TL torrent download API: after upload, downloads TL's official .torrent (correct info hash) for seeding
 - Auto-seed flow: upload to TL -> download TL .torrent -> send to qBT -> delete temp local .torrent
 - Fallback: if TL download fails, seeds with local .torrent copy and logs warning

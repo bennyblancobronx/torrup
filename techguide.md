@@ -75,14 +75,15 @@ Thumbnail extraction (ffmpeg):
 - `_extract_video_thumbnail(video_path, out_path)` - Extract frame at 10% duration
 - `_extract_album_art(audio_path, out_path)` - Extract embedded album artwork
 
-### Routes (src/routes.py + src/routes_queue.py + src/routes_activity.py)
+### Routes (src/routes.py + src/routes_changelog.py + src/routes_queue.py + src/routes_activity.py)
 
-Page routes (src/routes.py):
+Page routes (src/routes.py + src/routes_changelog.py):
 - `GET /` - Main UI
 - `GET /settings` - Settings UI
 - `GET /browse` - Browse media library page
 - `GET /queue` - Upload queue page
 - `GET /history` - Upload history page
+- `GET /changelog` - Changelog page (parses CHANGELOG.md into styled version cards)
 
 Browse/settings API (src/routes.py):
 - `GET /health` - Health check (returns status + version)

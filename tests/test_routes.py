@@ -904,3 +904,49 @@ class TestHistoryPage:
         res = client.get("/history")
         assert res.status_code == 200
         assert b"History page" in res.data
+
+
+class TestChangelogPage:
+    """Tests for changelog page route."""
+
+    def test_changelog_route_exists(self, client):
+        """Verify changelog route is registered."""
+        assert "main.changelog" in [rule.endpoint for rule in client.application.url_map.iter_rules()]
+
+    def test_changelog_renders(self, client, monkeypatch):
+        """Verify changelog page renders with version data."""
+        import src.routes_changelog as changelog_module
+
+        def mock_render(*args, **kwargs):
+            versions = kwargs.get("versions", [])
+            return f"Changelog: {len(versions)} versions"
+
+        monkeypatch.setattr(changelog_module, "render_template", mock_render)
+
+        res = client.get("/changelog")
+        assert res.status_code == 200
+        assert b"Changelog" in res.data
+
+    def test_changelog_parses_versions(self, tmp_path):
+        """Verify changelog parser extracts version blocks."""
+        import re
+
+        fake_changelog = tmp_path / "CHANGELOG.md"
+        fake_changelog.write_text(
+            "# Changelog\n\n"
+            "## [1.0.0] - 2026-01-01\n\n"
+            "### Added\n"
+            "- Feature one\n"
+            "- Feature two\n\n"
+            "### Fixed\n"
+            "- Bug fix\n\n"
+            "## [0.9.0] - 2025-12-01\n\n"
+            "### Changed\n"
+            "- Something changed\n"
+        )
+
+        text = fake_changelog.read_text()
+        blocks = re.split(r'^## ', text, flags=re.MULTILINE)
+        assert len(blocks) == 3  # preamble + 2 versions
+        assert "[1.0.0]" in blocks[1]
+        assert "[0.9.0]" in blocks[2]

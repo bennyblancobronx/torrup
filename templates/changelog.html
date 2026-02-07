@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} - Changelog</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script>
+    (function() {
+      const pref = localStorage.getItem('theme') || 'system';
+      if (pref === 'system') {
+        const sys = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', sys);
+      } else {
+        document.documentElement.setAttribute('data-theme', pref);
+      }
+    })();
+  </script>
+  <style>
+    .version-card {
+      margin-bottom: var(--space-4);
+    }
+
+    .version-header {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+
+    .version-number {
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+    }
+
+    .version-number.is-current {
+      color: var(--color-accent);
+    }
+
+    .version-date {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-light);
+      color: var(--color-text-muted);
+    }
+
+    .version-badge {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      background-color: var(--color-accent-surface);
+      color: var(--color-accent);
+    }
+
+    .changelog-section {
+      margin-bottom: var(--space-4);
+    }
+
+    .changelog-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .changelog-section-title {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-2);
+    }
+
+    .changelog-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .changelog-list li {
+      position: relative;
+      padding: var(--space-1) 0 var(--space-1) var(--space-4);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-light);
+      color: var(--color-text);
+      line-height: 1.5;
+    }
+
+    .changelog-list li::before {
+      content: "-";
+      position: absolute;
+      left: var(--space-1);
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <a href="/" class="header-logo">{{ app_name }}</a>
+      <a href="/changelog" class="header-version">v{{ app_version }}</a>
+    </div>
+    <nav class="header-nav">
+      <a href="/" class="nav-item">Dashboard</a>
+      <a href="/browse" class="nav-item">Browse</a>
+      <a href="/queue" class="nav-item">Queue</a>
+      <a href="/history" class="nav-item">History</a>
+      <a href="/settings" class="nav-item nav-item-settings" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container page">
+    <div class="page-header">
+      <h1 class="page-title">Changelog</h1>
+    </div>
+
+    {% for v in versions %}
+    <div class="card version-card">
+      <div class="version-header">
+        <span class="version-number {% if v.version == app_version %}is-current{% endif %}">{{ v.version }}</span>
+        {% if v.version == app_version %}
+        <span class="version-badge">current</span>
+        {% endif %}
+        <span class="version-date">{{ v.date }}</span>
+      </div>
+      {% for section in v.sections %}
+      <div class="changelog-section">
+        <div class="changelog-section-title">{{ section.title }}</div>
+        <ul class="changelog-list">
+          {% for item in section.items %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    {% if not versions %}
+    <div class="card">
+      <p class="text-muted">No changelog entries found.</p>
+    </div>
+    {% endif %}
+  </main>
+</body>
+</html>

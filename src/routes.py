@@ -371,6 +371,7 @@ def browse() -> tuple[Any, int]:
 
 
 
-# Queue routes are in src/routes_queue.py (split for file size compliance)
+# Split routes for file size compliance
+import src.routes_changelog  # noqa: F401, E402
 import src.routes_queue  # noqa: F401, E402
 import src.routes_activity  # noqa: F401, E402

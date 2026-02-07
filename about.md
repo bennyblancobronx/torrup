@@ -1,6 +1,6 @@
 # torrup - Torrent Upload Tool
 
-**Version:** 0.1.8
+**Version:** 0.1.9
 
 ## What It Is
 
@@ -43,18 +43,19 @@ torrup/
 
 ## Status
 
-v0.1.8 - Feature complete:
-- Web UI for browsing and uploading (5 pages)
+v0.1.9 - Feature complete:
+- Web UI for browsing and uploading (6 pages including changelog)
 - CLI with 13 commands
 - Queue system with background worker
 - Auto-scan worker for automatic library scanning
-- qBitTorrent integration (auto-seed, auto-source)
+- qBitTorrent integration (auto-seed)
+- TL torrent download for correct info hash seeding
 - Directory picker for path selection in settings
 - Light/Dark/System theme setting
 - Activity tracking and enforcement (upload health monitoring)
 - Settings management
 - Security hardening (CSRF, rate limiting, headers)
-- 313 tests passing
+- 316 tests passing
 - Docker deployment ready
 
 ## Roadmap
