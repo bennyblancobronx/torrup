@@ -1,7 +1,8 @@
 FROM python:3.11.7-slim
 
+ARG VERSION=0.1.9
 LABEL maintainer="project-maintainer" \
-      version="0.1.9" \
+      version="${VERSION}" \
       description="torrup - Torrent Upload Tool"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

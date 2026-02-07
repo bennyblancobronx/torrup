@@ -4,7 +4,7 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 
 ## Version
 
-0.1.8
+0.1.9
 
 ## Features
 
@@ -12,7 +12,7 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 - Movies, TV, books: browsing and queuing works; metadata lookups (IMDB, TVMaze) not yet wired into uploads
 - Queue + batch uploads with editable release names and tags
 - Duplicate check via tracker search API (supports TorrentLeech)
-- NFO generation using MediaInfo (file paths stripped)
+- NFO generation using MediaInfo (file paths stripped) with richer music sections (exiftool + ffprobe + local lyrics/artwork when available)
 - .torrent creation via mktorrent with private flag + source tag
 - Metadata extraction via exiftool (optional)
 - Thumbnail extraction via ffmpeg (optional)
@@ -41,8 +41,8 @@ Web UI + CLI for browsing media libraries, queuing items, generating torrents + 
 - Python 3.11+
 - mediainfo (CLI)
 - mktorrent (CLI)
-- exiftool (CLI, optional - for metadata extraction)
-- ffmpeg (CLI, optional - for thumbnail extraction)
+- exiftool (CLI, optional - for richer metadata + music NFO details)
+- ffmpeg/ffprobe (CLI, optional - for thumbnail/artwork extraction + audio stream details)
 
 ## Environment
 
@@ -107,13 +107,29 @@ Open: http://localhost:5001
 
 ## Docker
 
+### Using GitHub Container Registry (Recommended)
+
+You can pull and run the official image:
+```bash
+docker run -d --name torrup \
+  -p 5001:5001 \
+  -e TL_ANNOUNCE_KEY=your_passkey \
+  -e SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") \
+  -v /path/to/data:/app/data \
+  -v /path/to/output:/app/output \
+  -v /your/media:/volume/media:ro \
+  ghcr.io/your-username/torrup:latest
+```
+
+### Building Locally
+
 ```bash
 docker build -t torrup .
 docker run --rm -p 5001:5001 \
   -e TL_ANNOUNCE_KEY=your_passkey \
   -e SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") \
   -v /volume/media:/volume/media:ro \
-  -v /volume/media/torrents:/output:rw \
+  -v /app/output:/app/output:rw \
   torrup
 ```
 
