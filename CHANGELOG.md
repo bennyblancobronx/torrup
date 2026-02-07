@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.10] - 2026-02-07
 
+### Added
+- Manual scan button on dashboard (Scan Now) triggers scan of enabled roots via POST /api/scan/trigger
+- Docker :latest tag on GHCR releases for easy updates (docker compose pull)
+
 ### Changed
-- Version bump to 0.1.10 for first Docker GHCR release
+- Dashboard: removed Browse Library section (redundant with /browse page)
+- docker-compose.yml: defaults to pre-built GHCR image instead of local build
+- Split scan endpoint into src/routes_scan.py for file size compliance
 
 ## [0.1.9] - 2026-02-06
 

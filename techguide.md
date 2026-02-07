@@ -93,6 +93,9 @@ Browse/settings API (src/routes.py):
 - `GET /api/browse-dirs` - Browse filesystem directories (for settings path picker)
 - `POST /api/settings/qbt/test` - Test qBitTorrent connection
 
+Scan API (src/routes_scan.py):
+- `POST /api/scan/trigger` - Trigger manual scan of enabled roots (runs in background thread, rate-limited 2/min)
+
 Queue API routes (src/routes_queue.py):
 - `POST /api/queue/add` - Add items to queue
 - `GET /api/queue` - List queue
@@ -432,7 +435,7 @@ docker run -p 5001:5001 -e TL_ANNOUNCE_KEY=xxx torrup
 ```yaml
 services:
   torrup:
-    build: .
+    image: ghcr.io/bennyblancobronx/torrup:latest
     ports:
       - "5001:5001"
     environment:
@@ -442,3 +445,5 @@ services:
       - ./output:/app/output
       - ./torrup.db:/app/torrup.db
 ```
+
+To update: `docker compose pull && docker compose up -d`
